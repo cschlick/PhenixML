@@ -16,7 +16,7 @@ class BondFragmenter:
     return frags
 
 
-class AngleFragmenter(Fragmenter):
+class AngleFragmenter:
   def __init__(self):
     pass
 

@@ -7,18 +7,26 @@ from phenixml.fragmentation.fragments_base import Fragment
 
   
 class BondFragmenter:
-  def __init__(self):
-    pass
+  def __init__(self,exclude_symbols=[]):
+    self.exclude_symbols = exclude_symbols
   
   def fragment(self,rdmol):
-    indices = [[bond.GetBeginAtomIdx(),bond.GetEndAtomIdx()] for bond in rdmol.GetBonds()]
+    indices = []
+    for bond in rdmol.GetBonds():
+      i,j = bond.GetBeginAtomIdx(),bond.GetEndAtomIdx()
+    
+      if rdmol.GetAtomWithIdx(i).GetSymbol() in self.exclude_symbols or rdmol.GetAtomWithIdx(j).GetSymbol():
+        pass
+      else:
+        indices.append([i,j])
+        
     frags = [Fragment(rdmol,atom_indices=ind) for ind in indices]
     return frags
 
 
 class AngleFragmenter:
-  def __init__(self):
-    pass
+  def __init__(self,exclude_symbols=[]):
+    self.exclude_symbols = exclude_symbols
 
   def fragment(self,rdmol):
     
@@ -41,6 +49,15 @@ class AngleFragmenter:
             atom_triples_sorted.append([i,j,k])
         atom_triples = set([tuple(triple) for triple in atom_triples_sorted])
         angle_idxs |= atom_triples
-        
-    frags = [Fragment(rdmol,atom_indices=ind) for ind in angle_idxs]
+    keep_indices = []
+    for i,j,k in angle_idxs:
+      atoms = [rdmol.GetAtomWithIdx(i), rdmol.GetAtomWithIdx(j), rdmol.GetAtomWithIdx(k)]
+      symbols = [atom.GetSymbol() for atom in atoms]
+      reject = False
+      for s in symbols:
+        if s in self.exclude_symbols:
+          reject = True
+      if not reject:
+        keep_indices.append([i,j,k])
+    frags = [Fragment(rdmol,atom_indices=ind) for ind in keep_indices]
     return frags

@@ -1,0 +1,13 @@
+@<TRIPOS>MOLECULE
+tribromomethane
+ 3 2 0 0 0
+SMALL
+GASTEIGER
+
+@<TRIPOS>ATOM
+      1 BR          2.3638    3.4674    0.0000 Br      1  LIG1       -0.0857
+      2 C           3.1563    1.8219    0.5721 C.3     1  LIG1        0.0417
+      3 H           3.1563    1.8219    1.6519 H       1  LIG1        0.0440
+@<TRIPOS>BOND
+     1     1     2    1
+     2     2     3    1

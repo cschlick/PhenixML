@@ -15,7 +15,7 @@ class BondFragmenter:
     for bond in rdmol.GetBonds():
       i,j = bond.GetBeginAtomIdx(),bond.GetEndAtomIdx()
     
-      if rdmol.GetAtomWithIdx(i).GetSymbol() in self.exclude_symbols or rdmol.GetAtomWithIdx(j).GetSymbol():
+      if rdmol.GetAtomWithIdx(i).GetSymbol() in self.exclude_symbols or rdmol.GetAtomWithIdx(j).GetSymbol() in self.exclude_symbols:
         pass
       else:
         indices.append([i,j])

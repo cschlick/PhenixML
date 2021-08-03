@@ -23,3 +23,23 @@ class MorganFeaturizer:
           useBondTypes=self.useBondTypes,
           useFeatures=self.useFeatures)
     return np.array(fp)
+  
+  
+  
+class RDKFeaturizer:
+  def __init__(self,fpSize=2048,radius=1):
+    self.fpSize = fpSize
+    self.radius = radius
+    
+  def featurize(self,fragment):
+    if len(fragment.atom_indices) ==0 or len(fragment.atom_indices) == fragment.rdmol.GetNumAtoms():
+      fromAtoms = []
+    else:
+      if self.radius >1:
+        m,inds = fragment.extract_fragment(addDummies=False,radius=self.radius,return_inds=True)
+        fromAtoms = inds
+      else:
+        fromAtoms = fragment.atom_indices
+    fp = Chem.RDKFingerprint(fragment.rdmol,fromAtoms = fromAtoms)
+    
+    return np.array(fp)

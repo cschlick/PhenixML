@@ -45,29 +45,6 @@ class Fragment:
   def __len__(self):
     return len(self.atom_indices)
 
-# broken, displays 2 images
-#   def _repr_png_(self):
-#     mol_bitmap = self.show(interactive=False)
-
-#     fig, ax = plt.subplots(1,1,figsize=self._figsize_default)
-#     ax.imshow(mol_bitmap)
-#     ax.axes.spines["left"].set_visible(False)
-#     ax.axes.spines["top"].set_visible(False)
-#     ax.axes.spines["right"].set_visible(False)
-#     ax.axes.spines["bottom"].set_visible(False)
-#     ax.xaxis.set_visible(False)
-#     ax.yaxis.set_visible(False)
-    
-#     return display(fig)
-  
-#   @property
-#   def rdmol(self):
-#     #return copy.deepcopy(self._rdmol)
-#     return self._rdmol
-  
-#   @rdmol.setter
-#   def rdmol(self,value):
-#     self._rdmol = value
   
   @property
   def atoms(self):
@@ -123,7 +100,7 @@ class Fragment:
     return self._fragmented_bonds
 
   
-  def extract_fragment(self,addDummies=True,sanitizeFrags=False,radius=1):
+  def extract_fragment(self,addDummies=True,sanitizeFrags=False,radius=1,return_inds=False):
     """
     Extract the molecular fragment from the parent rdmol
 
@@ -162,56 +139,22 @@ class Fragment:
     pieces_indices = Chem.GetMolFrags(fragged, asMols=False,sanitizeFrags=sanitizeFrags)
     pieces_mols = Chem.GetMolFrags(fragged, asMols=True,sanitizeFrags=sanitizeFrags)
 
+    desired_inds = []
     valid_pieces = []
     for inds,piece in zip(pieces_indices,pieces_mols):
       if set(self.atom_indices).issubset(set(inds)):
         valid_pieces.append(piece)
-  #     target_num = len(self.atom_indices)
-  #     if addDummies:
-  #       target_num+=len(self.fragmented_bonds)
+        desired_inds.append(inds)
 
-  #     valid_pieces = []
-  #     # look for match by atom number
-  #     for piece in pieces:
-  #       num = piece.GetNumAtoms()
-  #       if num == target_num:
-  #         valid_pieces.append(piece)
-
-  #     if len(valid_pieces)==1:
-  #       found_piece = True
-  #       desired_piece = valid_pieces[0]
-  #     if not found_piece:
-  #       # look for match by conformer
-  #       if self.has_conformer:
-  #         xyz_fragment = self.xyz_fragment
-
-  #         for piece in valid_pieces:
-  #           if not found_piece:
-  #             conf = piece.GetConformer()
-  #             piece_xyz = np.vstack([conf.GetAtomPosition(atom.GetIdx()) for atom in piece.GetAtoms()])
-
-  #             D = cdist(xyz_fragment,piece_xyz)
-  #             n_matches = np.argwhere(D==0).shape[0]
-  #             if n_matches == len(self):
-  #               found_piece = True
-  #               desired_piece = piece
-
-  #     if not found_piece:
-  #       desired_piece = None
-  #     # look for match by smarts
-  #       smarts = [Chem.MolToSmarts(piece) for piece in valid_pieces]
-  #       query_mols = [Chem.MolFromSmarts(smart) for smart in smarts]
-  #       for i,query_mol in enumerate(query_mols):
-  #         if not found_piece:
-  #           for match in self.rdmol.GetSubstructMatches(query_mol):
-  #             if not set(match).issubset(set(self.atom_indices)):
-  #               desired_piece = valid_pieces[i]
-  #               found_piece = True
     assert(len(valid_pieces)==1)
     desired_piece = valid_pieces[0]
-    return desired_piece
+    desired_ind = desired_inds[0]
+    if return_inds:
+      return desired_piece, desired_ind
+    else:
+      return desired_piece
  
-  def show(self,highlight=True,hide_H=True,print_indices=False,only_connected=True,molSize=(600,600),figsize=10,interactive=True):
+  def show(self,highlight=True,hide_H=False,print_indices=False,only_connected=True,molSize=(600,600),figsize=10,interactive=True):
     """
     :param highlight: whether to highlight the frag in the mol
     :param hide_H: whether to hide hydrogens connected to carbons

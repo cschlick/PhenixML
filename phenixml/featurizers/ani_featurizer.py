@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.neighbors import KDTree
 from itertools import combinations
-
+import matplotlib.pyplot as plt
 # # sample parameter dict
 # params = {'radial_cutoff': 4.6,
 #  'radial_nu': 32,
@@ -44,8 +44,20 @@ class ANIFeaturizer:
       return cls(target_xyz,interaction_xyz,interaction_elements,params)
     else:
       return None
-  
-  
+
+  @classmethod
+  def from_frag_atoms(cls,frag,params):
+    rdmol = frag.rdmol
+
+    interaction_mols = [rdmol]
+
+
+    target_xyz = frag.xyz_fragment
+    interaction_xyz = np.vstack([rdmol.GetConformer().GetPositions() for rdmol in interaction_mols])
+    interaction_elements = np.concatenate([[a.GetSymbol() for a in rdmol.GetAtoms()] for rdmol in interaction_mols])
+
+    return cls(target_xyz,interaction_xyz,interaction_elements,params)
+
   def __init__(self,target_xyz,interaction_xyz,interaction_elements,params,calc_mode="optimized",debug=False):
     self.params = params
     self.target_xyz = target_xyz
@@ -349,3 +361,65 @@ class ANIFeaturizer:
         key = "debug_ang_"+key
         setattr(self,key,value)
     return ga
+  
+  def plot_aev(self,site_index=0,plot_region="all",plot_style="bar"):
+
+
+    # set some params that will need to be taken from the aev object
+
+    n_radial_components = len(self.radial_elements)
+    n_angular_components = len(self.angular_elements)
+
+    n_rs_rad = len(self.rs_rad)
+    n_rs_ang = len(self.rs_ang)
+    n_ts = len(self.ts)
+
+
+    radial_symbols = self.radial_elements
+    angular_symbols = [j+"."+k for j,k in self.angular_elements]
+
+    full_flat = np.concatenate([self.gr[site_index],self.ga[site_index]])
+
+    radial_length = n_radial_components*n_rs_rad
+    angular_length = n_angular_components*n_rs_ang*n_ts
+    full_length = radial_length+angular_length
+
+
+    radial_end = (n_radial_components*n_rs_rad)
+    radial_spacing = n_rs_rad
+    radial_locs = np.linspace(0,radial_end-radial_spacing,n_radial_components)-0.5
+
+    angular_locs = np.linspace(radial_end,full_length,n_angular_components+1)-0.5
+    angular_spacing = n_rs_ang*n_ts
+    line_locs = np.concatenate([radial_locs,angular_locs])
+    label_locs = np.concatenate([radial_locs+(radial_spacing/2),angular_locs[:-1]+(angular_spacing/2)])
+    labels = radial_symbols+angular_symbols
+
+    xlabel_fontsize=11
+    figure_size_inches = (16,6)
+    color="#5799c6"
+    width_ratio = 3
+    line_y_max = 0.05
+    fig, ax = plt.subplots(1,1,gridspec_kw={'width_ratios': [width_ratio]})
+
+
+    if plot_style=="bar":
+      ax.bar(np.arange(full_length),full_flat,color=color)
+    elif plot_style=="line":
+      ax.plot(np.arange(full_length),full_flat,color=color)
+
+    ret1= ax.set_xticks(label_locs)
+    ret2 = ax.set_xticklabels(labels,fontsize=xlabel_fontsize) 
+    for loc in line_locs:
+      ax.axvline(x=loc,ymax=line_y_max,color="black")
+    ax.set_ylabel("EV Output")
+    ax.axvline(x=line_locs[0],ymax=0.1,color="black")
+    ax.axvline(x=radial_end-0.5,ymax=0.1,color="black")
+    ax.axvline(x=line_locs[-1],ymax=0.1,color="black")
+    fig.set_size_inches(figure_size_inches)
+
+    if plot_region=="radial":
+      ax.set_xlim(0,radial_length)
+    elif plot_region=="angular":
+      ax.set_xlim(radial_length-1,full_length)
+    return ax

@@ -45,7 +45,16 @@ class ANIFeaturizer:
     else:
       return None
   
-  
+  @classmethod
+  def from_bond_angle_frag_atom_centered(cls,frag,params):
+    rdmol = frag.rdmol
+    target_xyz = frag.xyz_fragment
+    interaction_xyz = np.array(rdmol.GetConformer().GetPositions())
+    interaction_elements = np.array([a.GetSymbol() for a in rdmol.GetAtoms()])
+    return cls(target_xyz,interaction_xyz,interaction_elements,params)
+
+    
+    
   def __init__(self,target_xyz,interaction_xyz,interaction_elements,params,calc_mode="optimized",debug=False):
     self.params = params
     self.target_xyz = target_xyz

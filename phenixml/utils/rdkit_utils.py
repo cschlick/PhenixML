@@ -2,6 +2,7 @@ from rdkit import Chem
 from rdkit.Chem.Draw import IPythonConsole
 from rdkit.Chem import Draw
 import copy
+import numpy as np
 
 periodic_table_symbol_keys = {"H": 1, "He": 2, "Li": 3, "Be": 4, "B": 5,
                             "C": 6, "N": 7, "O": 8, "F": 9, "Ne": 10,
@@ -141,3 +142,45 @@ def cctbx_model_to_rdkit(model,iselection=None):
   # works
   m = Chem.MolFromPDBBlock(sel_model.model_as_pdb())
   return m
+
+
+
+def enumerate_bonds(mol):
+  idx_set = set()
+  for atom in mol.GetAtoms():
+    for neigh1 in atom.GetNeighbors():
+      idx1,idx2 = atom.GetIdx(), neigh1.GetIdx()
+      s = frozenset([idx1,idx2])
+      if len(s)==2:
+        idx_set.add(s)
+  # check that it matches a more direct approach
+  check = {frozenset((bond.GetBeginAtomIdx(),bond.GetEndAtomIdx())) for bond in mol.GetBonds()}
+  assert idx_set == check
+  return np.array(sorted([list(s) for s in idx_set]))
+
+def enumerate_angles(mol):
+  idx_set = set()
+  for atom in mol.GetAtoms():
+    for neigh1 in atom.GetNeighbors():
+      for neigh2 in neigh1.GetNeighbors():
+        idx0,idx1,idx2 = atom.GetIdx(), neigh1.GetIdx(),neigh2.GetIdx()
+        s = (idx0,idx1,idx2)
+        if len(set(s))==3:
+          if idx0>idx2:
+            idx0,idx2 = idx2,idx0
+          idx_set.add((idx0,idx1,idx2))
+  return np.array([list(s) for s in idx_set])
+
+def enumerate_torsions(mol):
+  idx_set = set()
+  for atom in mol.GetAtoms():
+    for neigh1 in atom.GetNeighbors():
+      for neigh2 in neigh1.GetNeighbors():
+        for neigh3 in neigh2.GetNeighbors():
+          idx0,idx1,idx2,idx3 = atom.GetIdx(), neigh1.GetIdx(),neigh2.GetIdx(), neigh3.GetIdx()
+          s = (idx0,idx1,idx2,idx3)
+          if len(set(s))==4:
+            if idx0>idx3:
+              idx0,idx3 = idx3,idx0
+            idx_set.add((idx0,idx1,idx2,idx3))
+  return np.array([list(s) for s in idx_set])

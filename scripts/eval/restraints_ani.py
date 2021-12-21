@@ -40,7 +40,12 @@ if __name__ == '__main__':
     _ = AllChem = AllChem.EmbedMolecule(rdmol,randomSeed=0xf00d)
   
   # check atom subset
+  pt  = Chem.GetPeriodicTable()
+  elements_considered = ["C","H","N","O","P","S","Cl","B","F","I","Br"]
   
+  def rdmol_element_set(rdmol):
+    return set([atom.GetSymbol() for atom in rdmol.GetAtoms()])
+  assert rdmol_element_set(rdmol).issubset(set(elements_considered)), "Must provide a molecule containing only these elements: "+str(elements_considered)
   
   
   # get models

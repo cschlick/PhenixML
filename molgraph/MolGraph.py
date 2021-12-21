@@ -43,7 +43,7 @@ class MolGraph:
       if conf is not None:
         
         #atoms
-        self.heterograph.nodes["n1"].data["xyz"]= torch.tensor(np.array(conf.GetPositions()),dtype=torch.float32)
+        #self.heterograph.nodes["n1"].data["xyz"]= torch.tensor(np.array(conf.GetPositions()),dtype=torch.float32)
         self.heterograph.nodes["n1"].data["h0"]= self.heterograph.nodes["n1"].data["h0"].detach().clone().type(torch.float32)
 
         conf = self.rdmol.GetConformer()
@@ -65,4 +65,4 @@ class MolGraph:
         self.heterograph.nodes["n3"].data["eq_ref"] = torch.tensor(angles_rad,dtype=torch.float32)
         
         
-
+    

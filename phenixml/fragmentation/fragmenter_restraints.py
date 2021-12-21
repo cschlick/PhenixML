@@ -3,7 +3,6 @@ import numpy as np
 from itertools import combinations
 
 from phenixml.utils.rdkit_utils import enumerate_angles
-
 from phenixml.fragmentation.fragments_base import Fragment
 
   

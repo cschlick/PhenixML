@@ -184,3 +184,21 @@ def enumerate_torsions(mol):
               idx0,idx3 = idx3,idx0
             idx_set.add((idx0,idx1,idx2,idx3))
   return np.array([list(s) for s in idx_set])
+
+
+def mol_from_smiles(smiles,embed3d=False,addHs=True):
+  ps = Chem.SmilesParserParams()
+  ps.removeHs=False
+  rdmol = Chem.MolFromSmiles(smiles,ps)
+  
+  if addHs or embed3d:
+    rdmol = Chem.AddHs(rdmol)
+  
+  if embed3d:
+    # generate 3d coords using RDkit 
+    from rdkit.Chem import AllChem
+    _ = AllChem = AllChem.EmbedMolecule(rdmol,randomSeed=0xf00d)
+
+  Chem.SetHybridization(rdmol)
+  rdmol.UpdatePropertyCache()
+  return rdmol

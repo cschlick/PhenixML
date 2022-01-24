@@ -17,6 +17,20 @@ def is_cctbx_atom(atom):
 
 
 class AtomFeaturizer_Residues:
+  """
+  One-hot encode the residue name of an atom. Intented for protein.
+  
+  Usage:
+  
+  featurizer = AtomFeaturizer_Residues()
+  featurizer = AtomFeaturizer_Residues(residues=['ALA', 'ARG', 'ASN', 'ASP','UNK']) # or use a restricted set
+  
+  feat = featurizer.featurize_atom(atom) # where atom is either an RDkit or CCTBX atom object
+  
+  Note: 
+  If encode_unknown=True and "UNK" is not present in residues, "X" will be added to encode unknown elements.
+  
+  """
   residues_default = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 'SER', 'THR', 'TRP', 'TYR', 'VAL','UNK']
   def __init__(self,residues=[],encode_unknown=True,dtype=np.float32):
     self.dtype=dtype
@@ -70,6 +84,19 @@ class AtomFeaturizer_Residues:
     return self.residues[index]
   
 class AtomFeaturizer_Element:
+  """
+    One-hot encode the Element symbol of an atom.
+  
+  Usage:
+  
+  featurizer = AtomFeaturizer_Element()
+  featurizer = AtomFeaturizer_Element(elements=["C","H","X"] # or use a restricted set
+  
+  feat = featurizer.featurize_atom(atom) # where atom is either an RDkit or CCTBX atom object
+  
+  Note: 
+  If encode_unknown=True and "X" is not present in element list, "X" will be added to encode unknown elements.
+  """
   elements_default = ["C","H","N","O","S","X"] # X is other
   def __init__(self,elements=[],dtype=np.float32,encode_unknown=True):
     self.dtype=dtype

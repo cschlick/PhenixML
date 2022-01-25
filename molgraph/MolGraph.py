@@ -65,9 +65,22 @@ class AtomMolgraph:
     """
     Pending a functional geometry restraints manager on Colabs, 
     use the PDB string as an intermediate to generate a rdkit mol.
+    
+    Because of an issue where the number of atoms can differ between
+    cctbx/rdkit when reading pdb files, the cctbx model is recreated from
+    the rdkit mol. So the original model object is not retained.
     """
-    mdata["cctbx_model"] = model
+    
     rdmol = Chem.MolFromPDBBlock(model.model_as_pdb())
+    
+    dm = DataManager()
+    dm.process_model_str("input",Chem.MolToPDBBlock(rdmol))
+    model = dm.get_model()
+    if model.crystal_symmetry()==None: # add crystal symmetry if missing (common for cryoem)
+      from cctbx.maptbx.box import shift_and_box_model
+      model = shift_and_box_model(model,shift_model=False)
+    mdata["cctbx_model"] = model
+    
     return cls(rdmol,mdata=mdata)
   
   @classmethod

@@ -3,7 +3,7 @@ from libtbx.utils import null_out
 import numpy as np
 
 
-class AtomLabelier_SS:
+class AtomLabelizer_SS:
   def __init__(self):
     pass
   

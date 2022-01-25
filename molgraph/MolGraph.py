@@ -19,9 +19,17 @@ except:
 
 
 class AtomMolgraph:
+  """
+  A container object to store molecules and the resulting atom graphs
+  
+  """
+  @classmethod
+  def from_binary_file(cls,filepath):
+    obj = torch.load(filepath)
+    return obj
   
   @classmethod
-  def from_file(cls,filepath):
+  def from_model_file(cls,filepath):
     filepath = Path(filepath)
     suffixes = set(filepath.suffixes) # may include .gz,.zip, but will likely fail later for now
     macromol_suffixes = [".pdb",".cif",".mmcif"]
@@ -93,7 +101,7 @@ class AtomMolgraph:
     # try to return the cctbx model obejct
     if not hasattr(self,"_model"):
       try:
-        for key,value in self.mdata:
+        for key,value in self.mdata.items():
           if isinstance(value,model_manager):
             self._model = value
       except:
@@ -130,9 +138,46 @@ class AtomMolgraph:
     
     self._atom_graph = g
     
-
+  def save(self,filepath):
+    filepath = Path(filepath)
+    self.mdata["binary_path"] = str(filepath)
+    torch.save(self,str(filepath))
     
+  def __repr__(self):
+    rep = ""
+    just = 20
+    rep+= "\n"+object.__repr__(self)+"\n"
 
+    # check molecule object
+    rep+="\n Attributes:"
+    if self.rdmol != None:
+      value = object.__repr__(self.rdmol)
+    else:
+      value = None
+    rep += "\n  rdmol"+"".join([" "]*(just+4))+": "+value
+
+    if self.model != None:
+      value = object.__repr__(self.model)
+    else:
+      value = None
+    rep+= "\n  "+"model"+"".join([" "]*(just+4))+": "+value
+
+    # graph
+    rep+="\n  atom_graph"+"".join([" "]*(just-19))+": ".rjust(rjust)+str(object.__repr__(self.atom_graph))
+
+
+    # meta data
+    rep+="\n"
+    for key,value in self.mdata.items():
+      try:
+        if isinstance(value,model_manager):
+          value = str(object.__repr__(value))
+      except:
+        value = str(value.__repr__())
+      rep+="\n"
+      rep+= "  mdata['"+str(key)+"']"+"".join([" "]*(just-len(key)))+": "+value
+    return rep
+    
 class MolGraph:
     
   def __init__(self, rdmol,filepath=None,default_mol_type="mol3d_noH",levels=["n1","n2","n3","n4"],canonical_conf=True):

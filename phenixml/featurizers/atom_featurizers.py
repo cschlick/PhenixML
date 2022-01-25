@@ -21,7 +21,99 @@ def is_cctbx_mol(mol):
   return isinstance(mol,model_manager)
 
 
-class AtomFeaturizer_Residues:
+class AtomFeaturizer_Element:
+  """
+    One-hot encode the Element symbol of an atom.
+  
+  Usage:
+  
+  featurizer = AtomFeaturizer_Element()
+  featurizer = AtomFeaturizer_Element(elements=["C","H","X"] # or use a restricted set
+  
+  feat = featurizer.featurize_atom(atom) # where atom is either an RDkit or CCTBX atom object
+  
+  Note: 
+  If encode_unknown=True and "X" is not present in element list, "X" will be added to encode unknown elements.
+  """
+  elements_default = ["C","H","N","O","S","X"] # X is other
+  def __init__(self,elements=[],dtype=np.float32,encode_unknown=True):
+    self.dtype=dtype
+    if len(elements)==0:
+      self.elements = self.elements_default
+    else:
+      self.elements = elements
+    
+    if encode_unknown:
+      if "X" not in self.elements:
+        self.elements.append("X")
+    else:
+      if "X" in self.elements:
+        self.elements.remove("X")
+   
+  def __len__(self):
+    return len(self.elements)
+  
+  def __call__(self,atom):
+    return self.featurize_atom(atom)
+  
+  def featurize_element(self,element):
+    if element in self.elements:
+      index = self.elements.index(element)
+    else:
+      assert "X" in self.elements, "Unknown element: "+element
+      index = self.elements.index("X")
+    
+    feat = np.zeros(len(self.elements)).astype(self.dtype)
+    feat[index]=1
+    return feat
+  
+  def featurize_atom(self,atom):
+    if is_rdkit_atom(atom):
+      element = pt.GetElementSymbol(atom.GetAtomicNum())
+    elif is_cctbx_atom(atom):
+      element = atom.element.strip()
+    
+    return self.featurize_element(element)
+  
+  def featurize_molecule(self,mol):
+    feats = []
+    if is_rdkit_mol(mol):
+      rdmol = mol
+      for atom in rdmol.GetAtoms():
+        element = pt.GetElementSymbol(atom.GetAtomicNum())
+        feat = self.featurize_element(element)
+        feats.append(feat)
+        
+    elif is_cctbx_mol(mol):
+      model = mol
+      for atom in model.get_atoms():
+        element = atom.element.strip()
+        feat = self.featurize_element(element)
+        feats.append(feat)
+      
+    return np.vstack(feats)
+  
+  def invert_feature(self,feat):
+    single = False
+    if feat.ndim==1:
+      feats = feat[np.newaxis,:]
+      single = True
+    else:
+      feats = feat
+    ret_vals = []
+    for feat in feats:
+      index = np.argwhere(feat>0).flatten()
+      assert len(index)==1, "One hot feature vector should have only one nonzero value."
+      index = index[0]
+      ret = self.elements[index]
+      ret_vals.append(ret)
+    if single:
+      return ret_vals[0]
+    else:
+      return ret_vals
+
+
+class AtomFeaturizer_Residue:
   """
   One-hot encode the residue name of an atom. Intented for protein.
   
@@ -110,6 +202,8 @@ class AtomFeaturizer_Residues:
     if feat.ndim==1:
       feats = feat[np.newaxis,:]
       single = True
+    else:
+      feats = feat
     ret_vals = []
     for feat in feats:
       index = np.argwhere(feat>0).flatten()
@@ -121,96 +215,7 @@ class AtomFeaturizer_Residues:
       return ret_vals[0]
     else:
       return ret_vals
-  
-class AtomFeaturizer_Element:
-  """
-    One-hot encode the Element symbol of an atom.
-  
-  Usage:
-  
-  featurizer = AtomFeaturizer_Element()
-  featurizer = AtomFeaturizer_Element(elements=["C","H","X"] # or use a restricted set
-  
-  feat = featurizer.featurize_atom(atom) # where atom is either an RDkit or CCTBX atom object
-  
-  Note: 
-  If encode_unknown=True and "X" is not present in element list, "X" will be added to encode unknown elements.
-  """
-  elements_default = ["C","H","N","O","S","X"] # X is other
-  def __init__(self,elements=[],dtype=np.float32,encode_unknown=True):
-    self.dtype=dtype
-    if len(elements)==0:
-      self.elements = self.elements_default
-    else:
-      self.elements = elements
-    
-    if encode_unknown:
-      if "X" not in self.elements:
-        self.elements.append("X")
-    else:
-      if "X" in self.elements:
-        self.elements.remove("X")
-   
-  def __len__(self):
-    return len(self.elements)
-  
-  def __call__(self,atom):
-    return self.featurize_atom(atom)
-  
-  def featurize_element(self,element):
-    if element in self.elements:
-      index = self.elements.index(element)
-    else:
-      assert "X" in self.elements, "Unknown element: "+element
-      index = self.elements.index("X")
-    
-    feat = np.zeros(len(self.elements)).astype(self.dtype)
-    feat[index]=1
-    return feat
-  
-  def featurize_atom(self,atom):
-    if is_rdkit_atom(atom):
-      element = pt.GetElementSymbol(atom.GetAtomicNum())
-    elif is_cctbx_atom(atom):
-      element = atom.element.strip()
-    
-    return self.featurize_element(element)
-  
-  def featurize_molecule(self,mol):
-    feats = []
-    if is_rdkit_mol(mol):
-      rdmol = mol
-      for atom in rdmol.GetAtoms():
-        element = pt.GetElementSymbol(atom.GetAtomicNum())
-        feat = self.featurize_element(element)
-        feats.append(feat)
-        
-    elif is_cctbx_mol(mol):
-      model = mol
-      for atom in model.get_atoms():
-        element = atom.element.strip()
-        feat = self.featurize_element(element)
-        feats.append(feat)
-      
-    return np.vstack(feats)
-  
-  def invert_feature(self,feat):
-    single = False
-    if feat.ndim==1:
-      feats = feat[np.newaxis,:]
-      single = True
-    ret_vals = []
-    for feat in feats:
-      index = np.argwhere(feat>0).flatten()
-      assert len(index)==1, "One hot feature vector should have only one nonzero value."
-      index = index[0]
-      ret = self.elements[index]
-      ret_vals.append(ret)
-    if single:
-      return ret_vals[0]
-    else:
-      return ret_vals
-  
+
   
   
 class ConcatAtomFeaturizer:

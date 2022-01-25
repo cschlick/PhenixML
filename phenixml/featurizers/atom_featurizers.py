@@ -5,15 +5,20 @@ pt  = Chem.GetPeriodicTable()
 try:
   import cctbx
   from iotbx.pdb.hierarchy import atom as cctbx_atom
+  from mmtbx.model.model import manager as model_manager
 except:
   pass # no cctbx
 
 # type checks
 def is_rdkit_atom(atom):
   return isinstance(atom,Chem.rdchem.Atom)
+def is_rdkit_mol(mol):
+  return isinstance(mol,Chem.rdchem.Mol)
 
 def is_cctbx_atom(atom):
   return isinstance(atom,cctbx_atom)
+def is_cctbx_mol(mol):
+  return isinstance(mol,model_manager)
 
 
 class AtomFeaturizer_Residues:
@@ -28,7 +33,7 @@ class AtomFeaturizer_Residues:
   feat = featurizer.featurize_atom(atom) # where atom is either an RDkit or CCTBX atom object
   
   Note: 
-  If encode_unknown=True and "UNK" is not present in residues, "X" will be added to encode unknown elements.
+  If encode_unknown=True and "UNK" is not present in residue list, "UNK" will be added to encode unknown residues.
   
   """
   residues_default = ['ALA', 'ARG', 'ASN', 'ASP', 'CYS', 'GLN', 'GLU', 'GLY', 'HIS', 'ILE', 'LEU', 'LYS', 'MET', 'PHE', 'PRO', 'SER', 'THR', 'TRP', 'TYR', 'VAL','UNK']
@@ -76,12 +81,46 @@ class AtomFeaturizer_Residues:
       resname = atom.parent().resname
     
     return self.featurize_resname(resname)
-
+  
+  def featurize_molecule(self,mol):
+    feats = []
+    if is_rdkit_mol(mol):
+      rdmol = mol
+      for atom in rdmol.GetAtoms():
+        resinfo = atom.GetPDBResidueInfo()
+        assert resinfo is not None, "Trying to featurize an atom using PDB residue information, but atom.PDBResidueInfo() is None"
+        resname = resinfo.GetResidueName()
+        resname = resname.strip()
+        feat = self.featurize_resname(resname)
+        feats.append(feat)
+        
+    elif is_cctbx_atom(mol):
+      model = mol
+      for atom in model.get_atoms():
+        resname = atom.parent().resname
+        resname = resname.strip()
+        feat = self.featurize_resname(resname)
+        feats.append(feat)
+      
+    return np.vstack(feats)
+  
+  
   def invert_feature(self,feat):
-    index = np.argwhere(feat>0).flatten()
-    assert len(index)==1, "One hot feature vector should have only one nonzero value."
-    index = index[0]
-    return self.residues[index]
+    single = False
+    if feat.ndim==1:
+      feats = feat[np.newaxis,:]
+      single = True
+    ret_vals = []
+    for feat in feats:
+      index = np.argwhere(feat>0).flatten()
+      assert len(index)==1, "One hot feature vector should have only one nonzero value."
+      index = index[0]
+      ret = self.residues[index]
+      ret_vals.append(ret)
+    if single:
+      return ret_vals[0]
+    else:
+      return ret_vals
   
 class AtomFeaturizer_Element:
   """
@@ -136,7 +175,24 @@ class AtomFeaturizer_Element:
       element = atom.element.strip()
     
     return self.featurize_element(element)
-
+  
+  def featurize_molecule(self,mol):
+    feats = []
+    if is_rdkit_mol(mol):
+      rdmol = mol
+      for atom in rdmol.GetAtoms():
+        element = pt.GetElementSymbol(atom.GetAtomicNum())
+        feat = self.featurize_element(element)
+        feats.append(feat)
+        
+    elif is_cctbx_atom(mol):
+      model = mol
+      for atom in model.get_atoms():
+        element = atom.element.strip()
+        feat = self.featurize_element(element)
+        feats.append(feat)
+      
+    return np.vstack(feats)
   
   def invert_feature(self,feat):
     index = np.argwhere(feat>0).flatten()
@@ -167,3 +223,6 @@ class ConcatAtomFeaturizer:
       inverted_features.append(inverted_feature)
       cum_i+=len(featurizer)
     return inverted_features
+  
+  
+  

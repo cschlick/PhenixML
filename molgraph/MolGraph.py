@@ -81,8 +81,15 @@ class AtomMolgraph:
   @property
   def model(self):
     # try to return the cctbx model obejct
-    for key,value in self.mdata:
-      if value.
+    if not hasattr(self,"_model"):
+      try:
+        from mmtbx.model.model import manager as model_manager
+        for key,value in self.mdata:
+          isinstance(value,model_manager):
+            self._model = value
+      else:
+        self._model = None
+    return self._model
   
   def build_atom_graph(self,atom_featurizer,keep_xyz=True):
     """

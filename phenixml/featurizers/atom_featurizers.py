@@ -94,7 +94,7 @@ class AtomFeaturizer_Residues:
         feat = self.featurize_resname(resname)
         feats.append(feat)
         
-    elif is_cctbx_atom(mol):
+    elif is_cctbx_mol(mol):
       model = mol
       for atom in model.get_atoms():
         resname = atom.parent().resname
@@ -185,7 +185,7 @@ class AtomFeaturizer_Element:
         feat = self.featurize_element(element)
         feats.append(feat)
         
-    elif is_cctbx_atom(mol):
+    elif is_cctbx_mol(mol):
       model = mol
       for atom in model.get_atoms():
         element = atom.element.strip()
@@ -195,10 +195,22 @@ class AtomFeaturizer_Element:
     return np.vstack(feats)
   
   def invert_feature(self,feat):
-    index = np.argwhere(feat>0).flatten()
-    assert len(index)==1, "One hot feature vector should have only one nonzero value."
-    index = index[0]
-    return self.elements[index]
+    single = False
+    if feat.ndim==1:
+      feats = feat[np.newaxis,:]
+      single = True
+    ret_vals = []
+    for feat in feats:
+      index = np.argwhere(feat>0).flatten()
+      assert len(index)==1, "One hot feature vector should have only one nonzero value."
+      index = index[0]
+      ret = self.elements[index]
+      ret_vals.append(ret)
+    if single:
+      return ret_vals[0]
+    else:
+      return ret_vals
+  
   
   
 class ConcatAtomFeaturizer:

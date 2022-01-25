@@ -75,10 +75,11 @@ class AtomMolgraph:
     
     dm = DataManager()
     dm.process_model_str("input",Chem.MolToPDBBlock(rdmol))
-    model = dm.get_model()
-    if model.crystal_symmetry()==None: # add crystal symmetry if missing (common for cryoem)
-      from cctbx.maptbx.box import shift_and_box_model
-      model = shift_and_box_model(model,shift_model=False)
+    model_new = dm.get_model(filename="input")
+    
+    # if model.crystal_symmetry()==None: # add crystal symmetry if missing (common for cryoem)
+    #   from cctbx.maptbx.box import shift_and_box_model
+    #   model = shift_and_box_model(model,shift_model=False)
     mdata["cctbx_model"] = model
     
     return cls(rdmol,mdata=mdata)

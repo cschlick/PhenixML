@@ -12,12 +12,12 @@ class AtomLabelizer_SS:
   labels = labelizer.label_model(model,method="ksdssp")
   
   Notes:
-  Method corresponds to what is available from mmtbx.secondary_structure
+  Method corresponds to: "ksdssp" (requires ksdssp to be configured) or "from_ca" 
   
   """
-  def __init__(self):
-    pass
-  
+  def __init__(self,default_output="numpy",default_dtype=np.float32):
+    self.default_output = default_output # can be one of list, numpy
+    self.dtype = default_dtype
   
   def labelize_model(self,model,
              method="ksdssp"):
@@ -48,8 +48,10 @@ class AtomLabelizer_SS:
     loop[alpha]=False
     loop[beta] = False
     if loop.sum()+alpha.sum()+beta.sum() == len(alpha):
-      alpha = alpha.tolist()
-      beta = beta.tolist()
-      ss_atom_annotation = {"alpha":alpha,"beta":beta}
+      if self.default_output == "list":
+        alpha = alpha.tolist()
+        beta = beta.tolist()
+        loop = loop.tolist()
+      ss_atom_annotation = {"alpha":alpha,"beta":beta,"loop":loop}
 
       return ss_atom_annotation

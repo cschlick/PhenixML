@@ -36,6 +36,7 @@ def fp_rdkit(atom):
           torch.tensor(
               [
                   atom.GetTotalDegree(),
+                  atom.GetTotalNumHs(),
                   atom.GetTotalValence(),
                   atom.GetExplicitValence(),
                   atom.GetFormalCharge(),

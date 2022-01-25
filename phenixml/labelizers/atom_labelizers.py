@@ -15,7 +15,7 @@ class AtomLabelizer_SS:
   Method corresponds to: "ksdssp" (requires ksdssp to be configured) or "from_ca" 
   
   """
-  def __init__(self,default_output="numpy",default_dtype=np.float32):
+  def __init__(self,default_output="numpy",default_dtype=np.bool):
     self.default_output = default_output # can be one of list, numpy
     self.dtype = default_dtype
   

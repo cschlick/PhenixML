@@ -7,12 +7,112 @@ from scipy.spatial.transform import Rotation
 from sklearn.decomposition import PCA
 
 from molgraph.build_graphs import build_heterograph_from_homo_mol, build_homograph
+from pathlib import Path
 
-
-class MolGraphProtein:
-  def __init__(self, rdmol,filepath=None,default_mol_type="mol3d_noH",input_mol_type="mol3d_noH"):
-    self.rdmol = rdmol
+class AtomMolgraph:
+  
+  @classmethod
+  def from_file(cls,filepath):
+    filepath = Path(filepath)
+    suffixes = set(filepath.suffixes) # may include .gz,.zip, but will likely fail later for now
+    macromol_suffixes = [".pdb",".cif",".mmcif"]
+    micromol_suffixes = [".mol",".mol2"]
     
+    mdata = {"filepath":str(filepath)}
+
+    if len(suffixes.intersection(set(macromol_suffixes))) >0:
+      # is macromol
+      dm = DataManager()
+      dm.process_model_file(str(filepath))
+      model = dm.get_model()
+      if model.crystal_symmetry()==None: # add crystal symmetry if missing (common for cryoem)
+        from cctbx.maptbx.box import shift_and_box_model
+        model = shift_and_box_model(model,shift_model=False)
+      
+      return cls.from_cctbx_model(model,mdata=mdata)
+    
+    elif len(suffixes.intersection(set(micromol_suffixes))) >0:
+      # is micromol
+      if ".mol2" in suffixes:
+        rdmol = Chem.MolFromMol2File(str(filepath))
+      elif ".mol" in suffixes:
+        rdmol = Chem.MolFromMolFile(str(filepath))
+        
+      return cls.from_rdkit(rdmoll,mdata=mdata)
+    else:
+      assert False, "File format not recognized. Supported suffixes: "+str(macromol_suffixes+micromol_suffixes)
+      
+    
+  @classmethod
+  def from_cctbx_model(cls,model,mdata={}):
+    """
+    Pending a functional geometry restraints manager on Colabs, 
+    use the PDB string as an intermediate to generate a rdkit mol.
+    """
+    mdata["cctbx_model"] = model
+    rdmol = Chem.MolFromPDBBlock(model.model_as_pdb())
+    return cls(rdmol,mdata=mdata)
+  
+  @classmethod
+  def from_rdkit(cls,rdmol,mdata={}):
+    return cls(rdmol,mdata=mdata)
+  
+  def __init__(self,rdmol,mdata={}):
+    
+    """
+    Parameters
+    ----------
+    rdmol : rdkit.Chem.rdchem.Mol
+            Rdkit molecule object. 
+    mdata : dict
+            dictionary of optional metadata for the molecule, like a filepath
+
+    """
+    self.rdmol = rdmol
+    self.mdata = mdata
+    
+  
+  @property
+  def atom_graph(self):
+    if not hasattr(self,"_atom_graph"):
+      assert False, "An atom graph is not yet built. Use method 'build_atom_graph' and provide a featurizer."
+    return self._atom_graph
+  
+  @property
+  def model(self):
+    # try to return the cctbx model obejct
+    for key,value in self.mdata:
+      if value.
+  
+  def build_atom_graph(self,atom_featurizer,keep_xyz=True):
+    """
+    Build an all-atom graph, featurized with an initial atom featurizer
+    """
+    
+    # build graph
+    bonds = list(self.rdmol.GetBonds())
+    bonds_begin_idxs = [bond.GetBeginAtomIdx() for bond in bonds]
+    bonds_end_idxs = [bond.GetEndAtomIdx() for bond in bonds]
+    bonds_types = [bond.GetBondType().real for bond in bonds]
+    data = np.array(list(zip(bonds_begin_idxs,bonds_end_idxs)))
+    data = np.vstack([data,np.flip(data,axis=1)]) # dgl requires two edges for undirected graph
+    g = dgl.graph((data[:,0],data[:,1]))
+    
+    # add features
+    features = np.vstack([featurizer(atom) for atom in rdmol.GetAtoms()])
+    g.ndata["h0"] = torch.from_numpy(features) # set initial representation
+    
+    # set xyz coords
+    if keep_xyz:
+      if len(rdmol.GetConformers())>0:
+        conf = rdmol.GetConformer()
+        pos = conf.GetPositions()
+        g.ndata["pos"] = torch.tensor(pos,dtype=torch.float32)
+      
+    
+    self._atom_graph = g
+    
+
     
 
 class MolGraph:

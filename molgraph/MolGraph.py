@@ -163,7 +163,7 @@ class AtomMolgraph:
     rep+= "\n  "+"model"+"".join([" "]*(just+4))+": "+value
 
     # graph
-    rep+="\n  atom_graph"+"".join([" "]*(just-19))+": ".rjust(rjust)+str(object.__repr__(self.atom_graph))
+    rep+="\n  atom_graph"+"".join([" "]*(just-1))+": "+str(object.__repr__(self.atom_graph))
 
 
     # meta data

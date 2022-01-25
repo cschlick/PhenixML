@@ -4,10 +4,22 @@ import numpy as np
 
 
 class AtomLabelizer_SS:
+  """
+  Labelize the alpha/beta ss content for each atom in a model
+  
+  Usage:
+  labelizer = AtomLabelizer_SS()
+  labels = labelizer.label_model(model,method="ksdssp")
+  
+  Notes:
+  Method corresponds to what is available from mmtbx.secondary_structure
+  
+  """
   def __init__(self):
     pass
   
-  def labelize(model,
+  
+  def labelize_model(self,model,
              method="ksdssp"):
     """
     Calculate the secondary structure annotations using mmtbx.

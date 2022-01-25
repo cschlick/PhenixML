@@ -9,6 +9,15 @@ from sklearn.decomposition import PCA
 from molgraph.build_graphs import build_heterograph_from_homo_mol, build_homograph
 from pathlib import Path
 
+try:
+  import cctbx
+  from iotbx.data_manager import DataManager
+  from mmtbx.model.model import manager as model_manager
+except:
+  pass # no cctbx
+
+
+
 class AtomMolgraph:
   
   @classmethod
@@ -38,7 +47,7 @@ class AtomMolgraph:
       elif ".mol" in suffixes:
         rdmol = Chem.MolFromMolFile(str(filepath))
         
-      return cls.from_rdkit(rdmoll,mdata=mdata)
+      return cls.from_rdkit(rdmol,mdata=mdata)
     else:
       assert False, "File format not recognized. Supported suffixes: "+str(macromol_suffixes+micromol_suffixes)
       
@@ -75,7 +84,8 @@ class AtomMolgraph:
   @property
   def atom_graph(self):
     if not hasattr(self,"_atom_graph"):
-      assert False, "An atom graph is not yet built. Use method 'build_atom_graph' and provide a featurizer."
+      # build without features
+      self.build_atom_graph(atom_featurizer=None,keep_xyz=True)
     return self._atom_graph
   
   @property
@@ -83,18 +93,18 @@ class AtomMolgraph:
     # try to return the cctbx model obejct
     if not hasattr(self,"_model"):
       try:
-        from mmtbx.model.model import manager as model_manager
         for key,value in self.mdata:
-          isinstance(value,model_manager):
+          if isinstance(value,model_manager):
             self._model = value
-      else:
+      except:
         self._model = None
     return self._model
   
-  def build_atom_graph(self,atom_featurizer,keep_xyz=True):
+  def build_atom_graph(self,atom_featurizer=None,keep_xyz=True):
     """
-    Build an all-atom graph, featurized with an initial atom featurizer
+    Build an all-atom graph, optionally featurized with an initial atom featurizer
     """
+    rdmol = self.rdmol
     
     # build graph
     bonds = list(self.rdmol.GetBonds())
@@ -103,11 +113,12 @@ class AtomMolgraph:
     bonds_types = [bond.GetBondType().real for bond in bonds]
     data = np.array(list(zip(bonds_begin_idxs,bonds_end_idxs)))
     data = np.vstack([data,np.flip(data,axis=1)]) # dgl requires two edges for undirected graph
-    g = dgl.graph((data[:,0],data[:,1]))
+    g = dgl.graph((data[:,0],data[:,1]),num_nodes=rdmol.GetNumAtoms())
     
-    # add features
-    features = np.vstack([featurizer(atom) for atom in rdmol.GetAtoms()])
-    g.ndata["h0"] = torch.from_numpy(features) # set initial representation
+    if atom_featurizer is not None:
+      # add features
+      features = np.vstack([atom_featurizer(atom) for atom in rdmol.GetAtoms()])
+      g.ndata["h0"] = torch.from_numpy(features) # set initial representation
     
     # set xyz coords
     if keep_xyz:

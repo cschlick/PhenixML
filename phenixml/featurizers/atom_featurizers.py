@@ -30,12 +30,14 @@ class AtomFeaturizer_Element:
   featurizer = AtomFeaturizer_Element()
   featurizer = AtomFeaturizer_Element(elements=["C","H","X"] # or use a restricted set
   
-  feat = featurizer.featurize_atom(atom) # where atom is either an RDkit or CCTBX atom object
-  
+  feat = featurizer.featurize_atom(atom)      # where atom is either an RDkit or CCTBX atom object
+  feat = featurizer.featurize_molecule(mol)   # where mol is either an RDkit Chem.Mol or CCTBX mmtbx.model.model.manager object
   Note: 
   If encode_unknown=True and "X" is not present in element list, "X" will be added to encode unknown elements.
   """
   elements_default = ["C","H","N","O","S","X"] # X is other
+  elements_full = [pt.GetElementSymbol(i) for i in range(117)]
+  
   def __init__(self,elements=[],dtype=np.float32,encode_unknown=True):
     self.dtype=dtype
     if len(elements)==0:
@@ -122,7 +124,8 @@ class AtomFeaturizer_Residue:
   featurizer = AtomFeaturizer_Residues()
   featurizer = AtomFeaturizer_Residues(residues=['ALA', 'ARG', 'ASN', 'ASP','UNK']) # or use a restricted set
   
-  feat = featurizer.featurize_atom(atom) # where atom is either an RDkit or CCTBX atom object
+  feat = featurizer.featurize_atom(atom)    # where atom is either an RDkit or CCTBX atom object
+  feat = featurizer.featurize_molecule(mol) # where mol is either an RDkit Chem.Mol or CCTBX mmtbx.model.model.manager object
   
   Note: 
   If encode_unknown=True and "UNK" is not present in residue list, "UNK" will be added to encode unknown residues.
@@ -217,8 +220,24 @@ class AtomFeaturizer_Residue:
       return ret_vals
 
   
-  
+
 class ConcatAtomFeaturizer:
+  """
+  Concatenate multiple atom featurizers together
+  
+  Usage:
+  
+  f1 = AtomFeaturizer_Element()
+  f2 = AtomFeaturizer_Residue()
+  featurizer = ConcatAtomFeaturizer(featurizers=[f1,f2])
+  
+  feat = featurizer.featurize_atom(atom)      # where atom is either an RDkit or CCTBX atom object
+  feat = featurizer.featurize_molecule(mol)   # where mol is either an RDkit Chem.Mol or CCTBX mmtbx.model.model.manager object
+  
+  Notes:
+  feature_inputs = featurizer.invert_feature(feat) 
+  
+  """
   def __init__(self,featurizers=[]):
     assert len(featurizers)>0, "Must provide a list of Atom featurizer instances"
     self.featurizers = featurizers
@@ -230,16 +249,37 @@ class ConcatAtomFeaturizer:
   def featurize_atom(self,atom):
     feats = [featurizer(atom) for featurizer in self.featurizers]
     return np.concatenate(feats)
+
+  def featurize_molecule(self,mol):
+    if is_rdkit_mol(mol):
+      rdmol = mol
+      atoms = rdmol.GetAtoms()
+    elif is_cctbx_mol(mol):
+      model = mol  
+      atoms = model.get_atoms()
+    feats = [np.concatenate([featurizer.featurize_atom(atom) for featurizer in self.featurizers]) for atom in atoms]
+    return np.vstack(feats)
     
   def invert_feature(self,feat):
-    cum_i = 0
-    inverted_features = []
-    for featurizer in self.featurizers:
-      feat_i = feat[cum_i:cum_i+len(featurizer)]
-      inverted_feature = featurizer.invert_feature(feat_i)
-      inverted_features.append(inverted_feature)
-      cum_i+=len(featurizer)
-    return inverted_features
-  
-  
-  
+
+
+    single = False
+    if feat.ndim==1:
+      feats = feat[np.newaxis,:]
+      single = True
+    else:
+      feats = feat
+    ret_vals = []
+    for feat in feats:
+      cum_i = 0
+      inverted_features = []
+      for featurizer in self.featurizers:
+        feat_i = feat[cum_i:cum_i+len(featurizer)]
+        inverted_feature = featurizer.invert_feature(feat_i)
+        inverted_features.append(inverted_feature)
+        cum_i+=len(featurizer)
+      ret_vals.append(inverted_features)
+    if single:
+      return ret_vals[0]
+    else:
+      return ret_vals

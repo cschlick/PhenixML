@@ -80,7 +80,7 @@ class AtomMolgraph:
     # if model.crystal_symmetry()==None: # add crystal symmetry if missing (common for cryoem)
     #   from cctbx.maptbx.box import shift_and_box_model
     #   model = shift_and_box_model(model,shift_model=False)
-    mdata["cctbx_model"] = model
+    mdata["cctbx_model"] = model_new
     
     return cls(rdmol,mdata=mdata)
   

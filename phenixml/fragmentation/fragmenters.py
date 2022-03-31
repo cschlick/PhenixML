@@ -96,7 +96,7 @@ class AngleFragmenter(FragmenterBase):
     # rdkit
     angle_idxs = enumerate_angles(container.rdkit_mol)
     fragments = [Fragment(container,atom_selection=angle_idx) for angle_idx in angle_idxs]
-    return self.return_fragments(fragments)
+    return self._return_fragments(fragments)
   
 
 class SmallMoleculeFragmenter(FragmenterBase):

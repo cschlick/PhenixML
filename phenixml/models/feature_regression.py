@@ -12,8 +12,7 @@ class FeatureModel(torch.nn.Module):
 
     # input
     f_in = torch.nn.Sequential(
-            torch.nn.Linear(in_feats, hid_feats), torch.nn.Tanh()
-        )
+            torch.nn.Linear(in_feats, hid_feats))#, torch.nn.Tanh())
     self.layers.append(f_in)
     
     # hidden layers

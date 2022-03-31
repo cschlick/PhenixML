@@ -6,15 +6,16 @@ import warnings
 
 class FragmentKNN:
     def __init__(self,fragments,features,metric="cosine"):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            self.fragments = fragments
-            self.features = features
-            self.metric = metric
-            self.index = NNDescent(features,self.metric)
-            # the first query often takes a long time,
-            # do it as part of building the index
-            _, _ = self.index.query(features[0][np.newaxis,:],k=1)
+      assert len(fragments)==len(features), "Must pass fragments,features of same length"
+      with warnings.catch_warnings():
+          warnings.simplefilter("ignore")
+          self.fragments = fragments
+          self.features = features
+          self.metric = metric
+          self.index = NNDescent(features,self.metric)
+          # the first query often takes a long time,
+          # do it as part of building the index
+          _, _ = self.index.query(features[0][np.newaxis,:],k=1)
         
     def query(self,features,k=10,return_ind=False,return_dist=False):
         assert isinstance(features,np.ndarray), "Pass a numpy feature array"

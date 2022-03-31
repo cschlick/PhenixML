@@ -120,7 +120,7 @@ class FragmentDisplay:
         return viewer
 
     @staticmethod
-    def show_fragment(fragment,show3d=False,highlight=True,size=None,extract=False):
+    def show_fragment(fragment,show3d=False,highlight=True,size=None,extract=False,hideHs=True):
         
         # the below is a hack to address a bug. It should be removed if possible    
         if fragment.mol_container.is_macromolecule and len(fragment.mol_container)>100:
@@ -140,21 +140,24 @@ class FragmentDisplay:
         mol = container.rdkit_mol_2d
         highlightAtoms = []
         highlightBonds = []
+  
+        
         if highlight and not extract:
             highlightAtoms = fragment.atom_selection
+            if not hideHs:
+              highlightBonds = Fragment.calc_bond_idxs(fragment.rdkit_mol,highlightAtoms)
+            else:
+              mol = container.rdkit_mol_noH
+              highlightAtoms = list(FragmentDisplay.convert_idxs_HnoH(fragment))
+              highlightBonds = list(Fragment.calc_bond_idxs(fragment.rdkit_mol_noH,highlightAtoms))
             
-            bond_dict = {bond.GetIdx():[bond.GetBeginAtomIdx(),bond.GetEndAtomIdx()] for bond in mol.GetBonds()}
-            highlightBonds = []
-            for key,value in bond_dict.items():
-                if set(value).issubset(highlightAtoms):
-                    highlightBonds.append(key)
         highlightAtoms = [int(i) for i in highlightAtoms]
         highlightBonds = [int(i) for i in highlightBonds]
 
         if not show3d:
             if size is None:
               size = (600,600)
-            return FragmentDisplay.show_mol_2d(container.rdkit_mol_2d,
+            return FragmentDisplay.show_mol_2d(mol,
                                                size=size,highlightAtoms=list(highlightAtoms),
                                                highlightBonds=highlightBonds)
         else:

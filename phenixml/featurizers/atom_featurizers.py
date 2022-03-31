@@ -283,3 +283,59 @@ class ConcatAtomFeaturizer:
       return ret_vals[0]
     else:
       return ret_vals
+
+
+
+class RDKIT_Fingerprint:
+    # based on the Espaloma rdkit fingerprint
+    
+    
+    def __call__(self,atom):
+        return self.featurize_atom(atom)
+
+    def featurize_atom(self,rdkit_atom):
+        atom = rdkit_atom
+        HYBRIDIZATION_RDKIT = {
+          Chem.rdchem.HybridizationType.SP: np.array(
+              [1, 0, 0, 0, 0],
+          ),
+          Chem.rdchem.HybridizationType.SP2: np.array(
+              [0, 1, 0, 0, 0],
+          ),
+          Chem.rdchem.HybridizationType.SP3: np.array(
+              [0, 0, 1, 0, 0],
+          ),
+          Chem.rdchem.HybridizationType.SP3D: np.array(
+              [0, 0, 0, 1, 0],
+          ),
+          Chem.rdchem.HybridizationType.SP3D2: np.array(
+              [0, 0, 0, 0, 1],
+          ),
+          Chem.rdchem.HybridizationType.S: np.array(
+              [0, 0, 0, 0, 0],
+          ),
+        }
+
+        return np.concatenate(
+              [
+                  np.array(
+                      [
+                          atom.GetTotalDegree(),
+                          atom.GetTotalNumHs(),
+                          atom.GetTotalValence(),
+                          atom.GetExplicitValence(),
+                          atom.GetFormalCharge(),
+                          atom.GetIsAromatic() * 1.0,
+                          atom.GetMass(),
+                          atom.IsInRingSize(3) * 1.0,
+                          atom.IsInRingSize(4) * 1.0,
+                          atom.IsInRingSize(5) * 1.0,
+                          atom.IsInRingSize(6) * 1.0,
+                          atom.IsInRingSize(7) * 1.0,
+                          atom.IsInRingSize(8) * 1.0,
+                      ],
+                  ),
+                  HYBRIDIZATION_RDKIT[atom.GetHybridization()],
+              ],
+          )
+

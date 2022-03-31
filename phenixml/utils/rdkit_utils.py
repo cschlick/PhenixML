@@ -146,17 +146,21 @@ def cctbx_model_to_rdkit(model,iselection=None):
 
 
 def enumerate_bonds(mol):
+  idx_set_bonds = {frozenset((bond.GetBeginAtomIdx(),bond.GetEndAtomIdx())) for bond in mol.GetBonds()}
+  
+  # check that the above approach matches the more exhaustive approach used for angles/torsion
   idx_set = set()
   for atom in mol.GetAtoms():
     for neigh1 in atom.GetNeighbors():
-      idx1,idx2 = atom.GetIdx(), neigh1.GetIdx()
-      s = frozenset([idx1,idx2])
+      idx0,idx1 = atom.GetIdx(), neigh1.GetIdx()
+      s = frozenset([idx0,idx1])
       if len(s)==2:
-        idx_set.add(s)
-  # check that it matches a more direct approach
-  check = {frozenset((bond.GetBeginAtomIdx(),bond.GetEndAtomIdx())) for bond in mol.GetBonds()}
-  assert idx_set == check
-  return np.array(sorted([list(s) for s in idx_set]))
+        if idx0>idx1:
+            idx0,idx1 = idx1,idx0
+            idx_set.add(s)
+  assert idx_set == idx_set_bonds
+  
+  return np.array([list(s) for s in idx_set_bonds])
 
 def enumerate_angles(mol):
   idx_set = set()
@@ -173,20 +177,30 @@ def enumerate_angles(mol):
 
 def enumerate_torsions(mol):
   idx_set = set()
-  for atom in mol.GetAtoms():
-    for neigh1 in atom.GetNeighbors():
-      for neigh2 in neigh1.GetNeighbors():
-        for neigh3 in neigh2.GetNeighbors():
-          idx0,idx1,idx2,idx3 = atom.GetIdx(), neigh1.GetIdx(),neigh2.GetIdx(), neigh3.GetIdx()
+  for atom0 in mol.GetAtoms():
+    idx0 = atom0.GetIdx()
+    for atom1 in atom0.GetNeighbors():
+      idx1 = atom1.GetIdx()
+      for atom2 in atom1.GetNeighbors():
+        idx2 = atom2.GetIdx()
+        if idx2==idx0:
+          continue
+        for atom3 in atom2.GetNeighbors():
+          idx3 = atom3.GetIdx()
+          if idx3 == idx1 or idx3 == idx0:
+            continue         
           s = (idx0,idx1,idx2,idx3)
           if len(set(s))==4:
-            if idx0>idx3:
-              idx0,idx3 = idx3,idx0
-            idx_set.add((idx0,idx1,idx2,idx3))
+            if idx0<idx3:
+              idx_set.add((idx0,idx1,idx2,idx3))
+            else:
+              idx_set.add((idx3,idx2,idx1,idx0))
+            
   return np.array([list(s) for s in idx_set])
 
 
-def mol_from_smiles(smiles,embed3d=False,addHs=True):
+
+def mol_from_smiles(smiles,embed3d=False,addHs=True,removeHs=False):
   ps = Chem.SmilesParserParams()
   ps.removeHs=False
   rdmol = Chem.MolFromSmiles(smiles,ps)
@@ -199,6 +213,9 @@ def mol_from_smiles(smiles,embed3d=False,addHs=True):
     from rdkit.Chem import AllChem
     _ = AllChem = AllChem.EmbedMolecule(rdmol,randomSeed=0xf00d)
 
+  if removeHs:
+    rdmol = Chem.RemoveHs(rdmol)
+  
   Chem.SetHybridization(rdmol)
   rdmol.UpdatePropertyCache()
   return rdmol

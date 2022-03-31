@@ -194,7 +194,7 @@ class AtomMolgraph:
     
 class MolGraph:
     
-  def __init__(self, rdmol,filepath=None,default_mol_type="mol3d_noH",levels=["n1","n2","n3","n4"],canonical_conf=True):
+  def __init__(self, rdmol,filepath=None,default_mol_type="mol3d_noH",levels=["n1","n2","n3","n4"],canonical_conf=False):
       self.filepath = filepath
       self.default_mol_type = default_mol_type    
       # obtain a 2d and 3d version of the molecule     
@@ -234,14 +234,14 @@ class MolGraph:
       if conf is not None:
         # molecule
         conf = self.rdmol.GetConformer()
-        pos = conf.GetPositions()
-        com = pos.mean(axis=0)
-        pca = PCA(n_components=3)
-        _ = pca.fit(pos)
-        rot,rmsd = Rotation.align_vectors(np.eye(3),pca.components_)
-        quat = rot.as_quat()
-        self.heterograph.nodes["g"].data["com_ref"] = torch.tensor(com[np.newaxis,:])
-        self.heterograph.nodes["g"].data["quat_ref"] = torch.tensor(quat[np.newaxis,:])
+        # pos = conf.GetPositions()
+        # com = pos.mean(axis=0)
+        # pca = PCA(n_components=3)
+        # _ = pca.fit(pos)
+        # rot,rmsd = Rotation.align_vectors(np.eye(3),pca.components_)
+        # quat = rot.as_quat()
+        # self.heterograph.nodes["g"].data["com_ref"] = torch.tensor(com[np.newaxis,:])
+        # self.heterograph.nodes["g"].data["quat_ref"] = torch.tensor(quat[np.newaxis,:])
 
         
         #atoms
@@ -287,23 +287,23 @@ class MolGraph:
 #         self.heterograph.nodes["n4"].data["deg_ref"] = torch.tensor(deg[:,0],dtype=torch.float32)
 #         self.heterograph.nodes["n4"].data["q_ref"] = torch.tensor(quat[:,[0,3]],dtype=torch.float32)
 #         self.heterograph.nodes["n4"].data["qh_ref"] = torch.tensor(quath[:,[0,3]],dtype=torch.float32)
-        if "n4" in levels:
-          tor_degs = []
-          for idx0,idx1,idx2,idx3 in self.heterograph.nodes["n4"].data["idxs"]: 
-            tor_deg = Chem.rdMolTransforms.GetDihedralDeg(conf,int(idx0),int(idx1),int(idx2),int(idx3))
-            tor_degs.append(tor_deg)
+#         if "n4" in levels:
+#           tor_degs = []
+#           for idx0,idx1,idx2,idx3 in self.heterograph.nodes["n4"].data["idxs"]: 
+#             tor_deg = Chem.rdMolTransforms.GetDihedralDeg(conf,int(idx0),int(idx1),int(idx2),int(idx3))
+#             tor_degs.append(tor_deg)
 
-          deg = np.array(tor_degs)
-          #deg = np.abs(deg)
-          angles = np.radians(deg)
-          cmplx = np.cos(angles)+1j*np.sin(angles)
-          self.heterograph.nodes["n4"].data["deg_ref"] = torch.tensor(deg,dtype=torch.float32)
-          self.heterograph.nodes["n4"].data["cmplx_ref"] = torch.tensor(cmplx,dtype=torch.cfloat)
+#           deg = np.array(tor_degs)
+#           #deg = np.abs(deg)
+#           angles = np.radians(deg)
+#           cmplx = np.cos(angles)+1j*np.sin(angles)
+#           self.heterograph.nodes["n4"].data["deg_ref"] = torch.tensor(deg,dtype=torch.float32)
+#           self.heterograph.nodes["n4"].data["cmplx_ref"] = torch.tensor(cmplx,dtype=torch.cfloat)
 
-          deg = np.abs(deg)
-          angles = np.radians(deg)
-          cmplx = np.cos(angles)+1j*np.sin(angles)
-          self.heterograph.nodes["n4"].data["deg_ref_hem"] = torch.tensor(deg,dtype=torch.float32)
-          self.heterograph.nodes["n4"].data["cmplx_ref_hem"] = torch.tensor(cmplx,dtype=torch.cfloat)
-          #self.heterograph.nodes["n4"].data["real_ref"] = torch.tensor(cmplx.real,dtype=torch.float32)
-          #self.heterograph.nodes["n4"].data["imag_ref"] = torch.tensor(cmplx.imag,dtype=torch.float32)
+#           deg = np.abs(deg)
+#           angles = np.radians(deg)
+#           cmplx = np.cos(angles)+1j*np.sin(angles)
+#           self.heterograph.nodes["n4"].data["deg_ref_hem"] = torch.tensor(deg,dtype=torch.float32)
+#           self.heterograph.nodes["n4"].data["cmplx_ref_hem"] = torch.tensor(cmplx,dtype=torch.cfloat)
+#           #self.heterograph.nodes["n4"].data["real_ref"] = torch.tensor(cmplx.real,dtype=torch.float32)
+#           #self.heterograph.nodes["n4"].data["imag_ref"] = torch.tensor(cmplx.imag,dtype=torch.float32)

@@ -3,6 +3,14 @@ from libtbx.utils import null_out
 import numpy as np
 
 
+class AtomLabelizer_AtomicNumber:
+    
+    def label_fragment(self,fragment):
+        # using rdkit
+        atoms = [atom for atom in fragment.rdkit_mol.GetAtoms() if atom.GetIdx() in fragment.atom_selection]
+        atomic_weights = [atom.GetAtomicNumber() for atom in atoms]
+        return atomic_weights
+
 class AtomLabelizer_SS:
   """
   Labelize the alpha/beta ss content for each atom in a model

@@ -132,7 +132,7 @@ class ANIFeaturizer:
         # featurize
         feature_groups = defaultdict(list)
         for container, frag_group in container_groups.items():
-            features = fragment_method(frag_group,**kwargs)
+            features = fragment_method(frag_group,params=params,**kwargs)
             feature_groups[container] = features
     
         # unpack in right order

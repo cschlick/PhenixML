@@ -41,23 +41,31 @@ class FragmenterBase:
   
   def fragment(self,container,**kwargs):
     if isinstance(container,list):
-        return self.from_container_list(container,**kwargs)
+        return self.from_container_list(container,exclude_elements=self.exclude_elements,**kwargs)
     
     assert isinstance(container,MolContainer), "Pass a MolContainer instance"
     return self._fragment(container,**kwargs)
 
   def _fragment(self,container,**kwargs):
     raise NotImplementedError
-    
-  def return_fragments(self,fragments):
+  
+
+  def _return_fragments(self,fragments):
     if len(self.exclude_elements)>0:
-        trimmed_fragments = []
-        ignore_set = set(self.exclude_elements)
-        for fragment in fragments:
-            intersection = ignore_set.intersection(fragment.elements)
-            if len(intersection)==0:
-                trimmed_fragments.append(fragment)
-        fragments = trimmed_fragments
+      # print("trimming")
+      # trimmed_fragments = []
+      # for fragment in fragments:
+      #   failed = False
+      #   for e in exclude_elements:
+      #     if e in fragment.elements:
+      #       failed = True
+      #   if not failed:
+      #     trimmed_fragments.append(fragment)
+      # fragments = trimmed_fragments
+          
+      for e in self.exclude_elements:
+        fragments = [frag for frag in fragments if e not in frag.elements]
+     
         
     return fragments
 
@@ -66,7 +74,7 @@ class BondFragmenter(FragmenterBase):
   Return the bonded pair fragments for a molecule
   """
 
-
+      
   def _fragment(self,container):
     assert isinstance(container,MolContainer)
     
@@ -74,7 +82,7 @@ class BondFragmenter(FragmenterBase):
     # rdkit
     idxs = enumerate_bonds(container.rdkit_mol)
     fragments = [Fragment(container,atom_selection=idx) for idx in idxs]
-    return self.return_fragments(fragments)
+    return self._return_fragments(fragments)
     
 class AngleFragmenter(FragmenterBase):
   """

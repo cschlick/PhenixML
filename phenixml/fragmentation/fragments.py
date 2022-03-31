@@ -7,6 +7,8 @@ from rdkit.Chem import rdFMCS
 import numpy as np
 import warnings
 
+from rdkit import RDLogger
+
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     from iotbx.data_manager import DataManager
@@ -20,18 +22,26 @@ class MolContainer:
     
     @classmethod
     def from_folder(cls,folder,max_files=None,**kwargs):
-        folder = Path(folder)
-        files = [file for file in folder.glob("**/*") if file.suffix in cls.suffixes_supported]
-        
-        if max_files!=None:
-            files = files[:max_files]
-            
-        return cls.from_file_list(files,**kwargs)
+      
+      RDLogger.DisableLog('rdApp.*') # suppress rdkit output
+
+      folder = Path(folder)
+      files = [file for file in folder.glob("**/*") if file.suffix in cls.suffixes_supported]
+
+      if max_files!=None:
+          files = files[:max_files]
+
+      return cls.from_file_list(files,**kwargs)
     
     @classmethod
     def from_file_list(cls,filenames,**kwargs):
-        containers = [cls.from_file_name(filename) for filename in filenames]
-        return containers
+      
+      RDLogger.DisableLog('rdApp.*') # suppress rdkit output
+      containers = [cls.from_file_name(filename) for filename in filenames]
+
+      # if reading failed, we just don't return a container. Maybe it is important to return None...
+      containers = [container for container in containers if container is not None]
+      return containers
             
     
     @classmethod
@@ -61,7 +71,10 @@ class MolContainer:
         # small molecules use rdkit by default
         elif ".mol" in filepath.suffixes:
             rdkit_mol = Chem.MolFromMolFile(str(filepath),removeHs=removeHs)
-            return cls(rdkit_mol,source_object_type="rdkit",filepath=filepath,_is_macromolecule=False)
+            if rdkit_mol is None:
+              return None
+            else:
+              return cls(rdkit_mol,source_object_type="rdkit",filepath=filepath,_is_macromolecule=False)
         
         elif ".mol2" in filepath.suffixes:
             rdkit_mol = Chem.MolFromMol2File(str(filepath),removeHs=removeHs)
@@ -121,13 +134,12 @@ class MolContainer:
         mol = self.rdkit_mol
         conformer_from_input = len(mol.GetConformers())>0
         if not conformer_from_input: 
-            # # need to make 3d version Careful! not usually a good idea
-            # mol2d = Chem.Mol(self.rdkit_mol)
-            # _ = AllChem.Compute2DCoords(mol2d)
-            # return mol2d
-            assert False, "No 3D structure present"
+            # need to make 3d version Careful! Not experimental
+            mol3d = Chem.AddHs(mol)
+            _ = AllChem.EmbedMolecule(mol3d,randomSeed=0xf00d) 
+            return mol3d
         else:
-            return self.rdkit_mol # already is 3d
+          return mol
     
     @property
     def rdkit_mol_noH(self):
@@ -168,21 +180,29 @@ class MolContainer:
             cctbx_model = dm.get_model("cctbx_model")
             cctbx_model.add_crystal_symmetry_if_necessary()
             return cctbx_model
-        
+    
+    # These two properties: xyz (cartesian coordinates) and elements (array of element string) 
+    # are the only two places that "data" is really stored on the model container and 
+    # thus duplicated. 
     @property
     def xyz(self):
+      if not hasattr(self,"_xyz"):
         if hasattr(self,"_cctbx_model"):
-            return self.cctbx_model.get_sites_cart().as_numpy_array()
+            self._xyz = self.cctbx_model.get_sites_cart().as_numpy_array()
         elif hasattr(self,"_rdkit_mol"):
             conf = self.rdkit_mol.GetConformer()
-            return conf.GetPositions()
+            self._xyz = conf.GetPositions()
+      return self._xyz
+    
     @property
     def elements(self):
+      if not hasattr(self,"_elements"):
         if hasattr(self,"_cctbx_model"):
             atoms = self.cctbx_model.get_atoms()
-            return np.array([e.strip() for e in atoms.extract_element()])
+            self._elements =  np.array([e.strip() for e in atoms.extract_element()])
         elif hasattr(self,"_rdkit_mol"):
-            return np.array([atom.GetSymbol() for atom in self.rdkit_mol.GetAtoms()])
+            self._elements = np.array([atom.GetSymbol() for atom in self.rdkit_mol.GetAtoms()])
+      return self._elements
         
     
     @property
@@ -256,8 +276,12 @@ class Fragment:
     def rdkit_mol_2d(self):
         return self.mol_container.rdkit_mol_2d
     @property
-    def rdkit_mol_2d(self):
+    def rdkit_mol_3d(self):
         return self.mol_container.rdkit_mol_3d
+    @property
+    def rdkit_mol_noH(self):
+        return self.mol_container.rdkit_mol_noH
+      
     @property
     def cctbx_model(self):
         return self.mol_container.cctbx_model
@@ -277,12 +301,15 @@ class Fragment:
     @property 
     def atom_idxs(self):
       return [int(i) for i in self.atom_selection]
-
-    @property 
+    
+    @property
     def bond_idxs(self):
-        atoms = self.atom_idxs
+      return self.calc_bond_idxs(self.rdkit_mol,self.atom_selection)
+    
+    @staticmethod
+    def calc_bond_idxs(mol,atom_idxs):
+        atoms = atom_idxs
         bonds = []
-        mol = self.rdkit_mol
         bond_dict = {bond.GetIdx():[bond.GetBeginAtomIdx(),bond.GetEndAtomIdx()] for bond in mol.GetBonds()}
         for key,value in bond_dict.items():
             if set(value).issubset(atoms):

@@ -5,6 +5,7 @@ from rdkit.Chem.Draw import IPythonConsole
 from rdkit.Chem import rdDepictor
 from rdkit.Chem.Draw import rdMolDraw2D
 from rdkit.Chem.Draw import MolsToGridImage
+from rdkit.Chem import rdFMCS
 import rdkit
 
 import io
@@ -46,6 +47,9 @@ class FragmentDisplay:
         elif isinstance(obj,list):
             if isinstance(obj[0],Fragment):
                 return self.grid_fragments(obj,**kwargs)
+        elif isinstance(obj,rdkit.Chem.rdchem.Mol):
+          container = MolContainer.from_rdkit(obj)
+          return self.show_container(container,**kwargs)
         else:
             raise ValueError("Call using a MolContainer or Fragment object")
     
@@ -101,11 +105,22 @@ class FragmentDisplay:
 
         if surface:
             viewer.addSurface(py3Dmol.SAS, {'opacity': opacity})
+        
+        viewer.setHoverable({},True,'''function(atom,viewer,event,container) {
+                   if(!atom.label) {
+                    atom.label = viewer.addLabel(atom.atom+":"+atom.index,{position: atom, backgroundColor: 'mintcream', fontColor:'black'});
+                   }}''',
+               '''function(atom,viewer) { 
+                   if(atom.label) {
+                    viewer.removeLabel(atom.label);
+                    delete atom.label;
+                   }
+                }''')
         viewer.zoomTo()
         return viewer
 
     @staticmethod
-    def show_fragment(fragment,show3d=False,highlight=True,size=(300,300),extract=False):
+    def show_fragment(fragment,show3d=False,highlight=True,size=None,extract=False):
         
         # the below is a hack to address a bug. It should be removed if possible    
         if fragment.mol_container.is_macromolecule and len(fragment.mol_container)>100:
@@ -127,6 +142,7 @@ class FragmentDisplay:
         highlightBonds = []
         if highlight and not extract:
             highlightAtoms = fragment.atom_selection
+            
             bond_dict = {bond.GetIdx():[bond.GetBeginAtomIdx(),bond.GetEndAtomIdx()] for bond in mol.GetBonds()}
             highlightBonds = []
             for key,value in bond_dict.items():
@@ -136,15 +152,23 @@ class FragmentDisplay:
         highlightBonds = [int(i) for i in highlightBonds]
 
         if not show3d:
-            return FragmentDisplay.show_mol_2d(container.rdkit_mol_2d,size=size,highlightAtoms=list(highlightAtoms), highlightBonds=highlightBonds)
+            if size is None:
+              size = (600,600)
+            return FragmentDisplay.show_mol_2d(container.rdkit_mol_2d,
+                                               size=size,highlightAtoms=list(highlightAtoms),
+                                               highlightBonds=highlightBonds)
         else:
+            if size is None:
+              size = (600,600)
             if container.is_macromolecule:
-                print("hi")
                 mol_text = container.cctbx_model.model_as_pdb()
-                return FragmentDisplay.show_mol_text_3d(mol_text,style="stick",size=size,highlight_atoms=list(highlightAtoms))
+                return FragmentDisplay.show_mol_text_3d(mol_text,style="stick",
+                                                        size=size,highlight_atoms=list(highlightAtoms))
             else:
                 mol_text = Chem.MolToMolBlock(container.rdkit_mol_3d)
-                return FragmentDisplay.show_mol_text_3d(mol_text,size=size,highlight_atoms=list(highlightAtoms))
+                return FragmentDisplay.show_mol_text_3d(mol_text,
+                                                        size=size,
+                                                        highlight_atoms=list(highlightAtoms))
 
     @staticmethod
     def show_container(container,show3d=False,show_3d=False,**kwargs):
@@ -153,7 +177,9 @@ class FragmentDisplay:
             ligand_fragments = SmallMoleculeFragmenter()(container)
             ligand_idxs = list(itertools.chain.from_iterable([frag.atom_selection for frag in ligand_fragments]))
             ligand_idxs = [int(i+1) for i in ligand_idxs]
-            return FragmentDisplay.show_mol_text_3d(container.cctbx_model.model_as_pdb(),style="cartoon",cartoon_omit_atoms=ligand_idxs,*kwargs)
+            return FragmentDisplay.show_mol_text_3d(
+              container.cctbx_model.model_as_pdb(),
+              style="cartoon",cartoon_omit_atoms=ligand_idxs,*kwargs)
 
         elif not show3d:
             return FragmentDisplay.show_mol_2d(container.rdkit_mol_2d)
@@ -162,20 +188,58 @@ class FragmentDisplay:
 
 
     @staticmethod
-    def grid_fragments(fragments,nmax=20,subImgSize=(300,300),**kwargs):
+    def grid_fragments(fragments,nmax=6,subImgSize=(300,300),showH=False,**kwargs):
         fragments = fragments[:nmax]
-        mols = [fragment.mol_container.rdkit_mol_noH for fragment in fragments]
-        
-        # bug below, this doesn't work passed as a kwarg
-        if "highlightAtomLists" not in kwargs:
-            highlightAtomLists=[list(fragment.atom_idxs) for fragment in fragments if len(fragment) < len(fragment.mol_container)]
-        if "highlightBondLists" not in kwargs:
-            highlightBondLists=[list(fragment.bond_idxs) for fragment in fragments if len(fragment) < len(fragment.mol_container)]
+        if showH:
+          mols = [fragment.mol_container.rdkit_mol_2d for fragment in fragments]
+        else:
+          mols = [fragment.mol_container.rdkit_mol_noH for fragment in fragments]
 
+        # bugs below, this doesn't work passed as a kwarg, sometimes mcs fails
+        if "highlightAtomLists" not in kwargs:
+          if not showH:
+            highlightAtomLists=[
+              list(FragmentDisplay.convert_idxs_HnoH(fragment))
+              for fragment in fragments if len(fragment) < len(fragment.mol_container)]
+          else:
+            highlightAtomLists=[
+              list(fragment.atom_idxs) for fragment in fragments if len(fragment) < len(fragment.mol_container)]
+
+        if "highlightBondLists" not in kwargs:
+          if not showH:
+            highlightBondLists=[
+              list(Fragment.calc_bond_idxs(fragments[i].rdkit_mol_noH,idxs))
+              for i,idxs in enumerate(highlightAtomLists)]
+          else:
+            highlightBondLists=[
+              list(Fragment.calc_bond_idxs(fragments[i].rdkit_mol_2d,idxs))
+              for i,idxs in enumerate(highlightAtomLists)]
+          
         return MolsToGridImage(mols,
                     highlightAtomLists=highlightAtomLists,
                     highlightBondLists=highlightBondLists,subImgSize=subImgSize,**kwargs)
     
+    
+    @staticmethod
+    def convert_idxs_HnoH(fragment):
+      
+      a,b = fragment.rdkit_mol, fragment.rdkit_mol_noH
+      mol_list= [a,b]
+      mcs_SMARTS = rdFMCS.FindMCS(mol_list,matchValences=True)
+      smarts_mol = Chem.MolFromSmarts(mcs_SMARTS.smartsString)
+      match_list = [x.GetSubstructMatch(smarts_mol) for x in mol_list]
+      a_idxs,b_idxs = match_list
+      a_to_b = {a_idx:b_idx for a_idx,b_idx in zip(a_idxs,b_idxs)}
+      idxs = []
+      for i in fragment.atom_selection:
+        if i in a_to_b:
+          idxs.append(a_to_b[i])
+      if len(idxs)==len(fragment):
+        return [int(i) for i in idxs]
+      else:
+        return []
+      
+      
     @staticmethod
     def compare_mcs(fragments):
         pass

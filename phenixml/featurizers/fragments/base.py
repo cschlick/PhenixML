@@ -1,5 +1,7 @@
 import numpy as np
-
+from multiprocessing import Pool
+from contextlib import closing
+from tqdm.notebook import tqdm
 from phenixml.fragmentation.fragments import MolContainer, Fragment
 
 class FragmentFeaturizerBase:
@@ -7,31 +9,29 @@ class FragmentFeaturizerBase:
     Base class to generate feature vectors for fragment objects
 
 
-    To make a new fragmenter, subclass this object and write a custom
+    To make a new featurizer, subclass this object and write a custom
     featurize method which takes a fragment as an 
     argument, and returns a numpy feature vector
 
     def _featurize(self,fragment):
 
-    # custom code
+      # custom code
 
-    return feature_vector
+      return feature_vector
 
     """
-    
     @staticmethod
-    def _featurize_fragment_list(instance,fragments,progress=True,**kwargs):
-        features = []
-        if progress:
-            import tqdm
-            for fragment in tqdm.tqdm(fragments):
-                feature = instance.featurize(fragment,**kwargs)
-                features.append(feature)
-        else:
-            for fragment in fragments:
-                feature = instance.featurize(fragment,**kwargs)
-                features.append(feature)
-        return np.array(features)
+    def _featurize_fragment_list(instance,fragments,disable_progress=False,nproc=1,**kwargs):
+         
+      worker = instance.featurize
+      work = fragments
+      results = []
+      with closing(Pool(processes=nproc)) as pool:
+        for result in tqdm(pool.map(worker, work), total=len(work)):
+            results.append(result)
+        pool.terminate()
+      
+      return np.array(results)
     
     def __call__(self,fragment,**kwargs):
         return self.featurize(fragment,**kwargs)

@@ -21,13 +21,15 @@ class MolContainer:
     suffixes_supported = [".mol",".mol2",".pdb",".mmcif",".cif"]
     
     @classmethod
-    def from_folder(cls,folder,max_files=None,**kwargs):
+    def from_folder(cls,folder,max_files=None,suffix=None,**kwargs):
       
       RDLogger.DisableLog('rdApp.*') # suppress rdkit output
 
       folder = Path(folder)
       files = [file for file in folder.glob("**/*") if file.suffix in cls.suffixes_supported]
-
+      if suffix is not None:
+        files = [file for file in files if file.suffix == suffix or file.suffix.strip(".")==suffix]
+      
       if max_files!=None:
           files = files[:max_files]
 

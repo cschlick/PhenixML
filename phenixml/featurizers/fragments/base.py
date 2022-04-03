@@ -2,7 +2,7 @@ import numpy as np
 from multiprocessing import Pool
 from contextlib import closing
 from tqdm.notebook import tqdm
-from phenixml.fragmentation.fragments import MolContainer, Fragment
+from phenixml.fragments.fragments import Fragment, MolContainer
 
 class FragmentFeaturizerBase:
     """

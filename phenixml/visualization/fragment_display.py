@@ -14,29 +14,28 @@ import itertools
 import matplotlib.pyplot as plt
 import py3Dmol
 
-from phenixml.fragmentation.fragments import MolContainer, Fragment
+from phenixml.fragments.fragments import MolContainer, Fragment
 from phenixml.fragmentation.fragmenters import SmallMoleculeFragmenter
 
+
+    # Issues:
+#     1. 
+#     There seems to be an issue where indices passed in 3d don't match.
+#     Hopefully this is an issue with py3dmol, not with cctbx/rdkit.
+    
+#     To reproduce: Open container with a ligand, try to display the 3d
+#     model where the ligand is highlighted.
+    
+#     2. Issues with hydrogens. Radicals (ie MTN) have hydrogens displayed
+#     implicitly, even when they were not there in the model before 
+#     removing hydrogens for visualization
+    
 
 
 class FragmentDisplay:
     """
     A class to display fragments and containers using rdkit and py3dmol
-    
-    
-    
-    # Issues:
-    1. 
-    There seems to be an issue where indices passed in 3d don't match.
-    Hopefully this is an issue with py3dmol, not with cctbx/rdkit.
-    
-    To reproduce: Open container with a ligand, try to display the 3d
-    model where the ligand is highlighted.
-    
-    2. Issues with hydrogens. Radicals (ie MTN) have hydrogens displayed
-    implicitly, even when they were not there in the model before 
-    removing hydrogens for visualization
-    
+
     """
 
     def __call__(self,obj,**kwargs):
@@ -157,6 +156,8 @@ class FragmentDisplay:
         if not show3d:
             if size is None:
               size = (600,600)
+            mol = Chem.Mol(mol)
+            _ = AllChem.Compute2DCoords(mol)
             return FragmentDisplay.show_mol_2d(mol,
                                                size=size,highlightAtoms=list(highlightAtoms),
                                                highlightBonds=highlightBonds)
@@ -217,6 +218,9 @@ class FragmentDisplay:
             highlightBondLists=[
               list(Fragment.calc_bond_idxs(fragments[i].rdkit_mol_2d,idxs))
               for i,idxs in enumerate(highlightAtomLists)]
+        mols = [Chem.Mol(mol) for mol in mols]
+        for mol in mols:
+          _ = AllChem.Compute2DCoords(mol)
           
         return MolsToGridImage(mols,
                     highlightAtomLists=highlightAtomLists,

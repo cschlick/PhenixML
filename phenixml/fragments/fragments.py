@@ -6,6 +6,8 @@ from rdkit.Chem import rdFMCS
 
 import numpy as np
 import warnings
+import random
+import tqdm
 
 from rdkit import RDLogger
 
@@ -17,32 +19,72 @@ with warnings.catch_warnings():
 from phenixml.utils.rdkit_utils import mol_from_smiles
 
 class MolContainer:
-    
+    """
+    The MolContainer class is meant to hold multiple molecular data structures.
+
+    Fragmentation of a MolContainer object into fragments is the first step in a 
+    regression/classification task. Because the container holds multiple data structures, 
+    fragmenters/Featurizers/labelers can be written to use any datatype present (ie, cctbx, rdkit, etc)
+
+    In addition to multiple data structures, a MolContainer is indented to manage multiple forms
+    of the same molecule (ie, +/- explicit hydrogens)
+    """
+
     suffixes_supported = [".mol",".mol2",".pdb",".mmcif",".cif"]
+    supported_source_types = ["rdkit","cctbx"]
     
     @classmethod
-    def from_folder(cls,folder,max_files=None,suffix=None,**kwargs):
+    def from_folder(cls,
+                    folder,
+                    max_files=None,
+                    suffix=None,
+                    random_fraction=1.0,
+                    removeHs=False,
+                    disable_progress=False,
+                    skip_failures=True,
+                    **kwargs):
       
       RDLogger.DisableLog('rdApp.*') # suppress rdkit output
 
       folder = Path(folder)
       files = [file for file in folder.glob("**/*") if file.suffix in cls.suffixes_supported]
+      if 0 <random_fraction <1:
+        files = random.sample(files,k=int(len(files)*random_fraction))
       if suffix is not None:
         files = [file for file in files if file.suffix == suffix or file.suffix.strip(".")==suffix]
       
       if max_files!=None:
           files = files[:max_files]
 
-      return cls.from_file_list(files,**kwargs)
+      return cls.from_file_list(files,removeHs=removeHs,skip_failures=skip_failures,**kwargs)
     
     @classmethod
-    def from_file_list(cls,filenames,**kwargs):
+    def from_file_list(cls,
+                       filenames,
+                       disable_progress=False,
+                       skip_failures=True,
+                       **kwargs):
+      # For now, always skip failures
       
       RDLogger.DisableLog('rdApp.*') # suppress rdkit output
-      containers = [cls.from_file_name(filename) for filename in filenames]
+      containers = []
+      for filename in tqdm.tqdm(filenames,disable=disable_progress):
+        container = cls.from_file_name(filename)
+        if (container is not None and 
+            container.rdkit_mol is not None and  
+            container.rdkit_mol_noH is not None):
+          # this should not be necessary. Eventually the class should facilitate using either +/- Hs
+          if "removeHs" in kwargs and kwargs["removeHs"]==True:
+             container = cls.from_rdkit(container.rdkit_mol_noH,
+                                      filename=str(container.filepath))
+          
+          if (container is not None and 
+            container.rdkit_mol is not None and
+            container.rdkit_mol_noH is not None):
+            containers.append(container)
 
-      # if reading failed, we just don't return a container. Maybe it is important to return None...
-      containers = [container for container in containers if container is not None]
+      
+      
       return containers
             
     
@@ -52,12 +94,12 @@ class MolContainer:
         return cls(rdkit_mol,source_object_type="rdkit")
     
     @classmethod
-    def from_rdkit(cls,rdkit_mol):
-        return cls(rdkit_mol,source_object_type="rdkit")
+    def from_rdkit(cls,rdkit_mol,filename=None):
+        return cls(rdkit_mol,source_object_type="rdkit",filepath=filename)
     
     @classmethod
-    def from_cctbx_model(cls,cctbx_model):
-        return cls(cctbx_model,source_object_type="cctbx")
+    def from_cctbx_model(cls,cctbx_model,filename=None):
+        return cls(cctbx_model,source_object_type="cctbx",filepath=filename)
     
     @classmethod
     def from_file_name(cls,filename,removeHs=False):
@@ -84,7 +126,7 @@ class MolContainer:
         else:
             raise ValueError("Unrecognized file extension(s):",filepath.suffixes)
         
-    supported_source_types = ["rdkit","cctbx"]
+    
     
     def __init__(self,source_object,
                  source_object_type="rdkit",
@@ -93,6 +135,8 @@ class MolContainer:
         assert source_object_type in self.supported_source_types
         self.source_object = source_object
         self.source_object_type = source_object_type
+        if isinstance(filepath,str):
+          filepath = Path(filepath)
         self.filepath = filepath
         if source_object_type == "rdkit":
             self._rdkit_mol = source_object
@@ -146,7 +190,7 @@ class MolContainer:
     @property
     def rdkit_mol_noH(self):
         if not hasattr(self,"_rdkit_mol_noH"):
-            self._rdkit_mol_noH = Chem.RemoveHs(self.rdkit_mol_2d)
+            self._rdkit_mol_noH = Chem.RemoveHs(self.rdkit_mol)
         return self._rdkit_mol_noH
     
     @property
@@ -183,9 +227,11 @@ class MolContainer:
             cctbx_model.add_crystal_symmetry_if_necessary()
             return cctbx_model
     
-    # These two properties: xyz (cartesian coordinates) and elements (array of element string) 
+    # These two properties below: xyz (cartesian coordinates) and elements (array of element string) 
     # are the only two places that "data" is really stored on the model container and 
-    # thus duplicated. 
+    # thus duplicated. It might be better to not duplicate it, but if you need the numpy form
+    # repeatedly than retrieving it each time can be slow.
+    
     @property
     def xyz(self):
       if not hasattr(self,"_xyz"):
@@ -195,6 +241,13 @@ class MolContainer:
             conf = self.rdkit_mol.GetConformer()
             self._xyz = conf.GetPositions()
       return self._xyz
+    
+    @xyz.setter
+    def xyz(self,value):
+      if hasattr(self,"_xyz"):
+        del self._xyz
+        self._xyz = value # NEED TO UPDATE THE DATASTRUCTURES
+
     
     @property
     def elements(self):
@@ -239,19 +292,38 @@ class MolContainer:
                                            
     
     def show(self,**kwargs):
-        from phenixml.fragmentation.display import FragmentDisplay
+        from phenixml.visualization.fragment_display import FragmentDisplay
         display = FragmentDisplay()
         return display(self,**kwargs)
             
-    
+#############################################################
+#### Fragment class
+#############################################################
+
 class Fragment:
+    """
+    A fragment is a selection on a MolContainer object, which maintains a 
+    reference to the container. Fragments are usually generated from a 
+    MolContainer object useing a Fragmenter object.
+
+    A fragment is the fundamental object to pass to:
+      1. Featurizers
+      2. Labelers
+
+    It is also useful for visualization purposes.
+    """
     def __init__(self,mol_container,atom_selection=None,string_selection=None):
         self.mol_container = mol_container
         self.atom_selection = np.array(atom_selection)
         self.string_selection = string_selection
+        if atom_selection is not None and string_selection is not None:
+            raise ValueError("Provide either atom selection or string selection")
+        if string_selection is not None:
+          self.atom_selection = self.mol_container.cctbx_model.selection(
+            string_selection).as_numpy_array().nonzero()[0]
         if atom_selection is None and string_selection is None:
             raise ValueError("fragment does not have associated selection")
-    
+        
     def __len__(self):
         return len(self.atom_selection)
     
@@ -321,7 +393,7 @@ class Fragment:
     
     
     def show(self,**kwargs):
-        from phenixml.fragmentation.display import FragmentDisplay
+        from phenixml.visualization.fragment_display import FragmentDisplay
         display = FragmentDisplay()
         return display(self,**kwargs)
     

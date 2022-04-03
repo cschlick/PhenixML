@@ -1,7 +1,7 @@
 import torch
 import dgl
 import numpy as np
-from molgraph.esp_fragments.sequential import _Sequential
+from phenixml.models.sequential import _Sequential
 
 class MessagePassing(torch.nn.Module):
     """Sequential neural network with input layers.
@@ -19,24 +19,30 @@ class MessagePassing(torch.nn.Module):
     forward(g, x)
         Forward pass.
     """
+    
 
+    
     def __init__(
         self,
-        layer,
         config,
+        layer= None,
         feature_units=117,
         input_units=128,
-        atom_node_name = "n1",
-        fragment_name = "n3",
+        atom_node_name = "atom",
+        fragment_name = "fragment",
         edge_types = ["bonded"],
         model_kwargs={},
     ):
         super(MessagePassing, self).__init__()
         
+        
         # setup
         self.atom_node_name = atom_node_name
         self.fragment_name = fragment_name
         self.edge_types = edge_types
+        if layer is None:
+           layer = lambda in_feats,out_feats: dgl.nn.pytorch.conv.sageconv.SAGEConv(in_feats,out_feats,"mean",bias=True) # dgl sageconv layer
+        
         # initial featurization
         self.f_in = torch.nn.Sequential(
             torch.nn.Linear(feature_units, input_units), torch.nn.Tanh()
@@ -47,7 +53,6 @@ class MessagePassing(torch.nn.Module):
         )
 
     def _forward(self, g, x):
-        """Forward pass with graph and features."""
         for exe in self.exes:
             if exe.startswith("d"):
                 x = getattr(self, exe)(g, x)
@@ -57,16 +62,7 @@ class MessagePassing(torch.nn.Module):
         return x
 
     def forward(self, g, x=None):
-        """Forward pass.
-        Parameters
-        ----------
-        g : `dgl.DGLHeteroGraph`,
-            input graph
-        Returns
-        -------
-        g : `dgl.DGLHeteroGraph`
-            output graph
-        """
+
         import dgl
         # get homogeneous subgraph
  

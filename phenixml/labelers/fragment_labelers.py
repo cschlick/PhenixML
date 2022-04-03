@@ -6,7 +6,7 @@ from tqdm.notebook import tqdm
 from rdkit import Chem
 from rdkit.Chem import rdMolTransforms
 
-from phenixml.fragmentation.fragments import MolContainer, Fragment
+from phenixml.fragments.fragments import Fragment, MolContainer
 
 class FragmentLabelerBase:
     """

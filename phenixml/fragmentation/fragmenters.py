@@ -4,7 +4,7 @@ import numpy as np
 from rdkit import Chem
 
 from phenixml.utils.rdkit_utils import enumerate_angles, enumerate_bonds, enumerate_torsions
-from phenixml.fragmentation.fragments import Fragment, MolContainer
+from phenixml.fragments.fragments import Fragment, MolContainer
 
 
 class FragmenterBase:

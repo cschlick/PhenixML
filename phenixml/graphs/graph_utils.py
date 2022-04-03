@@ -101,34 +101,12 @@ def build_fragment_heterograph(atom_graph=None,
                   ],
                   axis=1,
               )
-              # #comment out has relationships. I think this is ok since we are only using the higher level nodes for readout
-              # hg[
-              #     (
-              #         "n%s" % big_idx,
-              #         "n%s_has_%s_n%s" % (big_idx, pos_idx, small_idx),
-              #         "n%s" % small_idx,
-              #     )
-              # ] = np.stack(
-              #     [
-              #         np.arange(idxs["n%s" % big_idx].shape[0]),
-              #         np.array(
-              #             [
-              #                 idxs_to_ordering["n%s" % small_idx][tuple(x)]
-              #                 for x in idxs["n%s" % big_idx][
-              #                     :, pos_idx : pos_idx + small_idx
-              #                 ]
-              #             ]
-              #         ),
-              #     ],
-              #     axis=1,
-              # )
+
     import dgl
     hg = dgl.heterograph({key: list(value) for key, value in hg.items()})
-
     hg.nodes[node_name].data["h0"] = atom_graph.ndata["h0"].type(torch.get_default_dtype())
-    # set the n1 nodes to have the features from the atoms in the homograph
 
-    # include indices in the idxs to nodes in the homograph
+    
     for term in levels:
         hg.nodes[term].data["idxs"] = torch.tensor(idxs[term])
 

@@ -2,9 +2,10 @@ import torch
 import dgl
 import numpy as np
 
-from molgraph.esp_fragments.sequential import _Sequential
+from phenixml.models.sequential import _Sequential
 
-class JanossyReadout(torch.nn.Module):
+
+class ReadoutLinearJanossy(torch.nn.Module):
 
   def __init__(
         self,
@@ -12,12 +13,12 @@ class JanossyReadout(torch.nn.Module):
         in_features,
         out_features={"eq":3},
         out_features_dimensions=-1,
-        atom_node_name = "n1",
-        fragment_name = "n3",
+        atom_node_name = "atom",
+        fragment_name = "fragment",
         fragment_size = 3,
         pool=torch.add,
     ):
-    super(JanossyReadout, self).__init__()
+    super(ReadoutLinearJanossy, self).__init__()
 
     # setup
     out_features = {fragment_size:out_features}

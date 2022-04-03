@@ -31,7 +31,7 @@ class FragmenterBase:
     fragments = pool_with_progress(fragmenter,containers,**kwargs)
     return list(itertools.chain.from_iterable(fragments))
   
-  def __init__(self,exclude_elements=[]):
+  def __init__(self,exclude_elements=[],**kwargs):
     self.exclude_elements = exclude_elements
   
   def __call__(self,obj,**kwargs):

@@ -1,11 +1,12 @@
 import itertools
 import numpy as np
+import tqdm
 
 from rdkit import Chem
 
 from phenixml.utils.rdkit_utils import enumerate_angles, enumerate_bonds, enumerate_torsions
 from phenixml.fragments.fragments import Fragment, MolContainer
-
+from phenixml.utils.mp_utils import pool_with_progress
 
 class FragmenterBase:
     
@@ -25,14 +26,11 @@ class FragmenterBase:
     
   """
   @classmethod
-  def from_container_list(cls,containers,**kwargs):
+  def from_container_list(cls,containers,disable_progress=False,**kwargs):
     fragmenter = cls(**kwargs)
-    fragments = []
-    for container in containers:
-        frags = fragmenter.fragment(container)
-        fragments+=frags
-    return fragments
-
+    fragments = pool_with_progress(fragmenter,containers,**kwargs)
+    return list(itertools.chain.from_iterable(fragments))
+  
   def __init__(self,exclude_elements=[]):
     self.exclude_elements = exclude_elements
   

@@ -1,8 +1,9 @@
 import numpy as np
-from multiprocessing import Pool
 from contextlib import closing
 from tqdm.notebook import tqdm
 from phenixml.fragments.fragments import Fragment, MolContainer
+from phenixml.utils.mp_utils import pool_with_progress
+import tqdm
 
 class FragmentFeaturizerBase:
     """
@@ -21,17 +22,11 @@ class FragmentFeaturizerBase:
 
     """
     @staticmethod
-    def _featurize_fragment_list(instance,fragments,disable_progress=False,nproc=1,**kwargs):
-         
-      worker = instance.featurize
-      work = fragments
-      results = []
-      with closing(Pool(processes=nproc)) as pool:
-        for result in tqdm(pool.map(worker, work), total=len(work)):
-            results.append(result)
-        pool.terminate()
+    def _featurize_fragment_list(instance,fragments,**kwargs):
+
+      features = pool_with_progress(instance,fragments,**kwargs)
       
-      return np.array(results)
+      return np.array(features)
     
     def __call__(self,fragment,**kwargs):
         return self.featurize(fragment,**kwargs)

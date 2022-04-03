@@ -1,12 +1,13 @@
 import numpy as np
 from multiprocessing import Pool
 from contextlib import closing
-from tqdm.notebook import tqdm
+import tqdm
 
 from rdkit import Chem
 from rdkit.Chem import rdMolTransforms
 
 from phenixml.fragments.fragments import Fragment, MolContainer
+from phenixml.utils.mp_utils import pool_with_progress
 
 class FragmentLabelerBase:
     """
@@ -25,10 +26,10 @@ class FragmentLabelerBase:
 
     """
     @staticmethod
-    def _label_fragment_list(instance,fragments,**kwargs):
+    def _label_fragment_list(instance,fragments,disable_progress=False,**kwargs):
       
-      labels = [instance.label(frag) for frag in fragments]      
-      return np.vstack(labels)
+      labels = pool_with_progress(instance,fragments,**kwargs)
+      return np.array(labels)
     
     def __call__(self,fragment,**kwargs):
         return self.label(fragment,**kwargs)

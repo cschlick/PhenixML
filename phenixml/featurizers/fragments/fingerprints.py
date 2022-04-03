@@ -8,7 +8,7 @@ from phenixml.featurizers.fragments.base import FragmentFeaturizerBase
 
 
 class MorganFeaturizer(FragmentFeaturizerBase):
-  def __init__(self,radius=2,nBits=2048,useChirality=False,useBondTypes=True,useFeatures=False):
+  def __init__(self,radius=1,nBits=1024,useChirality=True,useBondTypes=True,useFeatures=True):
     self.radius = radius
     self.nBits = nBits
     self.useChirality = useChirality
@@ -20,10 +20,8 @@ class MorganFeaturizer(FragmentFeaturizerBase):
     if isinstance(fragment,list):
         return self._featurize_fragment_list(self,fragment,**kwargs)
     
-    if len(fragment.atom_selection) == len(fragment):
-      fromAtoms = []
-    else:
-      fromAtoms = fragment.atom_selection.tolist()
+
+    fromAtoms = fragment.atom_selection.tolist()
     fp = rdMolDescriptors.GetMorganFingerprintAsBitVect(
           fragment.rdkit_mol,
           self.radius,

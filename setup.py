@@ -19,7 +19,8 @@ setup(
                       "numpy",
                       "scipy",
                       "matplotlib",
-                      "pynndescent",],
+                      "pynndescent",
+                      "py3Dmol",],
     license=open('LICENSE.txt').read(),
     long_description=open('README.md').read(),
 )

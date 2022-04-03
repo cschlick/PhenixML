@@ -28,7 +28,7 @@ class FragmentKNN:
             inds,dists = inds[0],dists[0]
             frags = frags[0]
         
-        if return_ind:
+        if return_ind and not return_dist:
             return frags, inds
         if return_dist:
             return frags, inds, dists

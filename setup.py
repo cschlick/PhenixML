@@ -5,5 +5,4 @@ setup(
     version='0.310dev',
     packages==['phenixml','fragments',],
     license=open('LICENSE.txt').read(),
-    long_description=open('README.md').read(),
-)
+    long_description=open('README.md').read())

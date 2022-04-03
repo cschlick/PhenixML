@@ -20,7 +20,8 @@ setup(
                       "scipy",
                       "matplotlib",
                       "pynndescent",
-                      "py3Dmol",],
+                      "py3Dmol",
+                      "tqdm",],
     license=open('LICENSE.txt').read(),
     long_description=open('README.md').read(),
 )

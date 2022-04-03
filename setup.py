@@ -4,5 +4,5 @@ setup(
     name='PhenixML',
     version='0.310dev',
     packages==['phenixml',],
-    license=open('LICENSE.txt').read(),
-    long_description=open('README.md').read())
+    license="See LICENSE.txt",
+    long_description="PhenixML project")

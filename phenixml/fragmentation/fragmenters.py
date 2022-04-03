@@ -34,8 +34,8 @@ class FragmenterBase:
   def __init__(self,exclude_elements=[]):
     self.exclude_elements = exclude_elements
   
-  def __call__(self,obj):
-    return self.fragment(obj)
+  def __call__(self,obj,**kwargs):
+    return self.fragment(obj,**kwargs)
   
   def fragment(self,container,**kwargs):
     if isinstance(container,list):

@@ -11,10 +11,14 @@ import tqdm
 
 from rdkit import RDLogger
 
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
-    from iotbx.data_manager import DataManager
-    from cctbx.array_family import flex
+try:
+  with warnings.catch_warnings():
+      warnings.simplefilter("ignore")
+      from iotbx.data_manager import DataManager
+      from cctbx.array_family import flex
+except:
+  pass # For colab where cctbx doesn't work. 
+       # if it is needed it will fail later
 
 from phenixml.utils.rdkit_utils import mol_from_smiles
 

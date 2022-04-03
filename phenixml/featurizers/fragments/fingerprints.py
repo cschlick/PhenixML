@@ -8,7 +8,7 @@ from phenixml.featurizers.fragments.base import FragmentFeaturizerBase
 
 
 class MorganFeaturizer(FragmentFeaturizerBase):
-  def __init__(self,radius=1,nBits=1024,useChirality=True,useBondTypes=True,useFeatures=True):
+  def __init__(self,radius=2,nBits=1024,useChirality=False,useBondTypes=False,useFeatures=False):
     self.radius = radius
     self.nBits = nBits
     self.useChirality = useChirality

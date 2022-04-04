@@ -1,5 +1,5 @@
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Examples:
 
    ecfp_angles

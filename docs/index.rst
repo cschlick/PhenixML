@@ -6,7 +6,7 @@
 PhenixML
 ===========================================================================
 
-PhenixML is a project built to support the `Link text <https://phenix-online.org>`_ suite of tools for 
+PhenixML is a project built to support the `Phenix <https://phenix-online.org>`_ suite of tools for 
 sturcture refinement of x-ray crystallography and cryo-EM models. Many aspects
 of Phenix could benefit from regression/classification tasks on molecules
 and molecular fragments. This fragmework aims to make these tasks easy.

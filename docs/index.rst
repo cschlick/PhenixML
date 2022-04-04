@@ -13,6 +13,6 @@ and molecular fragments. This fragmework aims to make these tasks easy.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Examples:
 
    examples/index

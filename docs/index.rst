@@ -6,7 +6,7 @@
 PhenixML
 ===========================================================================
 
-PhenixML is a project built to support the `Phenix <https://phenix-online.org>`_ suite of tools for sturcture refinement of x-ray crystallography and cryo-EM models. Many aspects of Phenix could benefit from regression/classification tasks on molecules and molecular fragments. This framework aims to make these tasks easy.
+PhenixML is a project built to support the `Phenix <https://phenix-online.org>`_ suite of tools for structure refinement of x-ray crystallography and cryo-EM models. Many aspects of Phenix could benefit from regression/classification tasks on molecules and molecular fragments. This framework aims to make these tasks more organized.
 
 The fundamental objects are MolContainers and Fragments. A MolContainer stores molecular data structures in a pre-existing format. A Fragment is a selection on a MolContainer. Featurization, labeling, and visualization functionality operate on Fragments. The basic workflow would be:
 

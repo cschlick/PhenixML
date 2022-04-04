@@ -306,9 +306,10 @@ class MolContainer:
 
 class Fragment:
     """
-    A fragment is a selection on a MolContainer object, which maintains a 
-    reference to the container. Fragments are usually generated from a 
-    MolContainer object useing a Fragmenter object.
+    A fragment is a selection on a MolContainer object, 
+    which maintains a reference to the container. 
+    Fragments are usually generated from a 
+    MolContainer object using a Fragmenter instance.
 
     A fragment is the fundamental object to pass to:
       1. Featurizers

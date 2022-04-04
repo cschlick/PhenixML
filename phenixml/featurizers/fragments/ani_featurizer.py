@@ -59,7 +59,7 @@ class ANIFeaturizer:
         target_xyz = frags_midpoints
         featurizer = cls(target_xyz, container.xyz, container.elements, ANIFeaturizer.default_params)
         features = featurizer.featurize()
-        return features
+        return features, featurizer
     
     
     @classmethod
@@ -101,7 +101,7 @@ class ANIFeaturizer:
     
         if return_flat:
             fragment_features = np.array([np.concatenate(feature) for feature in fragment_features])
-        return fragment_features
+        return fragment_features, featurizer
     
     
     @classmethod

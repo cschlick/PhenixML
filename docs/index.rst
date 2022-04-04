@@ -15,10 +15,13 @@ The fundamental objects are MolContainers and Fragments. A MolContainer stores m
 4. Perform regression/classification on the resulting features/labels
 
 **Installation**
+
 ```
 pip install git+https://github.com/cschlick/PhenixML.git
 ```
+
 To get the cctbx functionality use conda: 
+
 ```
 conda install -c conda-forge cctbx-base
 ```

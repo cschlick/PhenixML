@@ -10,5 +10,6 @@
 To get the cctbx functionality use conda:
 
 .. code:: bash
-  conda install -c conda-forge cctbx-base
+
+    conda install -c conda-forge cctbx-base
 

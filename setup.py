@@ -21,7 +21,8 @@ setup(
                       "matplotlib",
                       "pynndescent",
                       "py3Dmol",
-                      "tqdm",],
+                      "tqdm",
+                      "dgl",],
     license=open('LICENSE.txt').read(),
     long_description=open('README.md').read(),
 )

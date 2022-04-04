@@ -14,7 +14,7 @@ The fundamental objects are MolContainers and Fragments. A MolContainer stores m
 3. Pass the fragments to Featurizer and Labeler functions
 4. Perform regression/classification on the resulting features/labels
 
-### Installation
+**Installation**
 
 .. code:: bash
 

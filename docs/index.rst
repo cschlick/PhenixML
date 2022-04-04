@@ -14,17 +14,20 @@ The fundamental objects are MolContainers and Fragments. A MolContainer stores m
 3. Pass the fragments to Featurizer and Labeler functions
 4. Perform regression/classification on the resulting features/labels
 
-**Installation**
+### Installation
 
-```
-pip install git+https://github.com/cschlick/PhenixML.git
-```
+.. code:: bash
 
-To get the cctbx functionality use conda: 
+    pip install git+https://github.com/cschlick/PhenixML.git
 
-```
-conda install -c conda-forge cctbx-base
-```
+
+To get the cctbx functionality use conda:
+
+.. code:: bash
+
+    conda install -c conda-forge cctbx-base
+
+
 
 .. toctree::
    :maxdepth: 2
